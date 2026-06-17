@@ -1,0 +1,662 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>এ আর এগ্রো এন্ড হ্যাচারী - দরপত্র ও কোটেশন জেনারেটর</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Serif Bengali', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .invoice-print-area {
+            width: 210mm;
+            min-height: 297mm;
+            background-color: #1e293b;
+            color: #f1f5f9;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            box-sizing: border-box;
+            z-index: 1;
+        }
+        
+        /* Watermark Implementation */
+        .watermark-container {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 52pt;
+            font-weight: 700;
+            color: rgba(248, 250, 252, 0.04);
+            white-space: nowrap;
+            pointer-events: none;
+            z-index: 0;
+            user-select: none;
+            font-family: 'Noto Serif Bengali', serif;
+            text-align: center;
+            width: 100%;
+        }
+        
+        .export-light-mode {
+            background-color: #ffffff !important;
+            color: #1e293b !important;
+            width: 210mm !important;
+            height: 297mm !important;
+            padding: 48px !important; /* Standard explicit padding for high-res export */
+        }
+        .export-light-mode .watermark-container {
+            color: rgba(15, 23, 42, 0.05) !important;
+        }
+        .export-light-mode h1, .export-light-mode .text-emerald-400, .export-light-mode .text-emerald-500 {
+            color: #059669 !important;
+        }
+        .export-light-mode .text-slate-400, .export-light-mode .text-slate-500 {
+            color: #4b5563 !important;
+        }
+        .export-light-mode .text-slate-100, .export-light-mode .text-slate-200, .export-light-mode .text-slate-300 {
+            color: #0f172a !important;
+        }
+        .export-light-mode .bg-slate-800\/50, .export-light-mode .bg-slate-800\/40 {
+            background-color: #f1f5f9 !important;
+            border-color: #cbd5e1 !important;
+        }
+        .export-light-mode .border-slate-700, .export-light-mode .border-slate-800, .export-light-mode .divide-slate-800 {
+            border-color: #e2e8f0 !important;
+        }
+        .export-light-mode #lblValidationCode {
+            background: none !important;
+            border: none !important;
+            color: #1e293b !important;
+            padding: 0 !important;
+        }
+        .export-light-mode .no-shape-box {
+            background: none !important;
+            border: none !important;
+            padding: 0 !important;
+        }
+        .export-light-mode .cod-black-text {
+            color: #000000 !important;
+        }
+        .export-light-mode #lblCodCost {
+            color: #000000 !important;
+        }
+
+        @page {
+            size: A4 landscape;
+            margin: 0;
+        }
+        @media print {
+            body {
+                background: none !important;
+                color: #000000 !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            .max-w-7xl {
+                max-width: 100% !important;
+                width: 100% !important;
+                padding: 0 !important;
+                margin: 0 !important;
+            }
+            body * {
+                visibility: hidden;
+            }
+            #printDualContainer, #printDualContainer * {
+                visibility: visible;
+            }
+            #printDualContainer {
+                position: absolute;
+                left: 0;
+                top: 0;
+                width: 297mm;
+                height: 210mm;
+                display: flex !important;
+                flex-direction: row !important;
+                justify-content: space-between !important;
+                align-items: stretch !important;
+                padding: 10mm !important;
+                box-sizing: border-box !important;
+                gap: 8mm !important;
+                background-color: #ffffff !important;
+            }
+            .print-half-invoice {
+                width: 138mm !important;
+                min-height: 190mm !important;
+                height: 190mm !important;
+                padding: 8mm !important;
+                border: 1px dashed #cbd5e1 !important;
+                background-color: #ffffff !important;
+                color: #1e293b !important;
+                box-shadow: none !important;
+                transform: none !important;
+                position: relative !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+                box-sizing: border-box !important;
+                z-index: 1 !important;
+            }
+            .print-half-invoice .watermark-container {
+                color: rgba(15, 23, 42, 0.04) !important;
+                font-size: 36pt !important;
+            }
+            .print-half-invoice h1, .print-half-invoice .text-emerald-400, .print-half-invoice .text-emerald-500 { color: #059669 !important; }
+            .print-half-invoice .text-slate-400, .print-half-invoice .text-slate-500 { color: #4b5563 !important; }
+            .print-half-invoice .text-slate-100, .print-half-invoice .text-slate-200, .print-half-invoice .text-slate-300 { color: #0f172a !important; }
+            .print-half-invoice .bg-slate-800\/50, .print-half-invoice .bg-slate-800\/40 { background-color: #f1f5f9 !important; border-color: #cbd5e1 !important; }
+            .print-half-invoice .border-slate-700, .print-half-invoice .border-slate-800, .print-half-invoice .divide-slate-800 { border-color: #e2e8f0 !important; }
+            .print-half-invoice #lblValidationCode { background: none !important; border: none !important; color: #1e293b !important; padding: 0 !important; }
+            .print-half-invoice .no-shape-box { background: none !important; border: none !important; padding: 0 !important; }
+            .print-half-invoice .cod-black-text { color: #000000 !important; }
+            .print-half-invoice #lblCodCost { color: #000000 !important; }
+            
+            .no-print {
+                display: none !important;
+            }
+        }
+
+        #previewGridZone {
+            display: flex;
+        }
+        @media (max-width: 1024px) {
+            #previewGridZone {
+                display: none !important;
+            }
+            .invoice-preview-container {
+                overflow-x: auto;
+                width: 100%;
+                display: flex;
+                justify-content: flex-start;
+            }
+            .invoice-print-area {
+                width: 210mm;
+                transform: scale(0.65);
+                transform-origin: top left;
+            }
+            .preview-scroll-wrapper {
+                width: 100%;
+                overflow: auto;
+                padding-bottom: 20px;
+            }
+        }
+        @media (max-width: 768px) {
+            .invoice-print-area {
+                transform: scale(0.42);
+            }
+        }
+    </style>
+</head>
+<body class="p-4 md:p-8 min-h-screen bg-gradient-to-br from-slate-950 via-slate-900 to-slate-950">
+
+    <div id="printDualContainer" style="display: none;"></div>
+
+    <div class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8">
+        <!-- Form Area -->
+        <div class="lg:col-span-5 bg-slate-900/80 backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-slate-800 no-print">
+            <div class="flex items-center space-x-3 mb-6 border-b border-slate-800 pb-4">
+                <div class="bg-gradient-to-tr from-emerald-500 to-teal-600 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                </div>
+                <h2 class="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent"> কোটেশন ও দরপত্র জেনারেটর </h2>
+            </div>
+
+            <form id="quotationForm" onsubmit="event.preventDefault();" class="space-y-4">
+                <div class="bg-slate-800/40 p-3 rounded-lg border border-slate-800 text-xs text-slate-400 mb-2">
+                    💡 সরাসরি নিচের তালিকা থেকে পণ্যের পরিমাণ সিলেক্ট করে কোটেশন তৈরি করুন।
+                </div>
+
+                <h3 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider pt-2">পণ্যের তালিকা (Product Items)</h3>
+                <div id="productContainer" class="space-y-3"></div>
+
+                <button type="button" onclick="addProductRow()" class="w-full flex items-center justify-center space-x-1 py-2 px-4 border border-dashed border-emerald-500/50 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition text-sm font-medium">
+                    <svg xmlns="http://www.w3.org/2000/xl" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    <span>নতুন পণ্য যোগ করুন</span>
+                </button>
+
+                <div class="pt-4 border-t border-slate-800">
+                    <button type="button" onclick="generateQuotation()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-900/30 transform active:scale-[0.98] transition flex items-center justify-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5H7a2 2 0 00-2 2v12a2 2 0 002 2h10a2 2 0 002-2V7a2 2 0 00-2-2h-2M9 5a2 2 0 002 2h2a2 2 0 002-2M9 5a2 2 0 012-2h2a2 2 0 012 2" /></svg>
+                        <span> কোটেশন তৈরি করুন</span>
+                    </button>
+                    
+                    <div id="actionButtonsZone" class="hidden space-y-3 mt-3">
+                        <div class="grid grid-cols-2 gap-2">
+                            <button type="button" onclick="downloadJPG()" class="py-2.5 px-3 bg-blue-600 hover:bg-blue-500 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-1">
+                                <span>JPG কোটেশন ডাউনলোড</span>
+                            </button>
+                            <button type="button" onclick="downloadPDF()" class="py-2.5 px-3 bg-rose-600 hover:bg-rose-500 text-white font-medium text-sm rounded-lg shadow transition flex items-center justify-center space-x-1">
+                                <span>PDF কোটেশন ডাউনলোড</span>
+                            </button>
+                        </div>
+
+                        <div class="grid grid-cols-3 gap-2">
+                            <button type="button" onclick="copyQuotationText()" class="py-2 px-2 bg-slate-700 hover:bg-slate-600 text-white font-medium text-xs rounded-lg transition text-center">
+                                টেক্সট কপি করুন
+                            </button>
+                            <button type="button" onclick="shareQuotation()" class="py-2 px-2 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-xs rounded-lg transition text-center">
+                                শেয়ার করুন
+                            </button>
+                            <button type="button" onclick="triggerPrint()" class="py-2 px-2 bg-amber-600 hover:bg-amber-500 text-white font-medium text-xs rounded-lg transition text-center">
+                                প্রিন্ট করুন
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </form>
+        </div>
+
+        <!-- Preview Zone -->
+        <div id="previewGridZone" class="lg:col-span-7 flex justify-center items-start w-full">
+            <div class="preview-scroll-wrapper">
+                <div class="invoice-preview-container">
+                    <div id="invoiceCaptureArea" class="invoice-print-area p-12 flex flex-col justify-between" style="width: 210mm; min-height: 297mm;">
+                        
+                        <!-- Page Center Watermark -->
+                        <div class="watermark-container">এ আর এগ্রো এন্ড হ্যাচারী</div>
+
+                        <div>
+                            <div class="flex justify-between items-start border-b border-slate-700 pb-6">
+                                <div class="flex items-center">
+                                    <div>
+                                        <h1 class="text-3xl font-bold tracking-wide text-emerald-400" style="font-family: 'Noto Serif Bengali', sans-serif;">এ আর এগ্রো এন্ড হ্যাচারী</h1>
+                                        <p class="text-xs text-slate-400 mt-1">শেরুয়া হাইস্কুল রোড, শেরপুর, বগুড়া</p>
+                                        <p class="text-xs text-slate-400">মোবাইল: 01612-292789</p>
+                                    </div>
+                                </div>
+                                <div class="text-right">
+                                    <h2 class="text-3xl font-light text-slate-500 tracking-widest uppercase mb-2"> অফিসিয়াল কোটেশন </h2>
+                                    <div class="text-xs space-y-1 text-slate-400">
+                                        <p><span class="font-semibold text-slate-200">কোটেশন নং:</span> <span id="lblQuotationNo">ARAGRO-QT-XXXX</span></p>
+                                        <p><span class="font-semibold text-slate-200">তারিখ:</span> <span id="lblQuotationDate">DD-MM-YYYY</span></p>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="my-6 no-shape-box" style="width: 100%; display: block; text-align: center; box-sizing: border-box; background: transparent; border: none; padding: 0;">
+                                <p class="text-sm font-medium text-emerald-400" style="display: inline-block; width: 100%; text-align: center; margin: 0; padding: 0;">সম্মানিত গ্রাহক, আপনার চাহিদা অনুযায়ী আমাদের পণ্যের বর্তমান বাজারমূল্য ও আনুমানিক খরচের দরপত্র নিচে পেশ করা হলো।</p>
+                            </div>
+
+                            <table class="w-full text-left border-collapse my-6">
+                               <thead>
+                                   <tr class="border-b border-slate-700 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                                       <th class="py-3 pl-2">#</th>
+                                       <th class="py-3">পণ্যের বিবরণ</th>
+                                       <th class="py-3 text-right">পরিমাণ (পিছ)</th>
+                                       <th class="py-3 text-right">একক মূল্য</th>
+                                       <th class="py-3 text-right pr-2">সর্বমোট মূল্য</th>
+                                   </tr>
+                               </thead>
+                               <tbody id="lblProductRows" class="divide-y divide-slate-800 text-slate-300">
+                                   <tr>
+                                       <td colspan="5" class="py-8 text-center text-slate-500 italic">কোনো পণ্য যোগ করা হয়নি। বামদিকের ফর্ম থেকে পণ্য নির্বাচন করে কোটেশন তৈরি করুন।</td>
+                                   </tr>
+                               </tbody>
+                            </table>
+                        </div>
+
+                        <div>
+                            <div class="grid grid-cols-12 gap-4 border-t border-slate-800 pt-6">
+                                <div class="col-span-6 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 self-start">
+                                    <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">অর্ডার ও পেমেন্ট নিয়মাবলী</h4>
+                                    <ul class="text-xs space-y-1.5 text-slate-300">
+                                        <li><span class="font-medium text-slate-400">পার্সোনাল বিকাশ/নগদ/রকেট:</span> 01937-866274</li>
+                                        <li><span class="font-medium text-slate-400">মার্চেন্ট পেমেন্ট বিকাশ:</span> 01612-292789</li>
+                                    </ul>
+                                    <p class="text-[11px] text-slate-300 mt-4 italic font-medium" style="font-family: 'Noto Serif Bengali', sans-serif;">
+                                        <span>বিশেষ দ্রষ্টব্যঃ এই কোটেশনে উল্লেখিত পণ্যের মূল্য বাজার পরিবর্তন সাপেক্ষে সাময়িক পরিবর্তন হতে পারে। </span><span class="text-emerald-500 font-bold">প্যাকেজিং ও কুরিয়ার চার্জ অগ্রিম প্রদান সাপেক্ষে অর্ডার充নফার্ম করা হয়।</span>
+                                    </p>
+                                </div>
+
+                                <div class="col-span-6 text-right space-y-2 text-xs text-slate-400">
+                                    <div class="flex justify-between pl-4">
+                                        <span>মোট ডিমের সংখ্যা:</span>
+                                        <span id="lblTotalEggs" class="font-semibold text-slate-200">0 পিছ</span>
+                                    </div>
+                                    <div class="flex justify-between pl-4">
+                                        <span>ডিমের মোট মূল্য:</span>
+                                        <span id="lblEggCost" class="font-medium text-slate-200">0 টাকা</span>
+                                    </div>
+                                    <div class="flex justify-between pl-4">
+                                        <span>প্যাকেজিং চার্জ:</span>
+                                        <span id="lblPackagingCharge" class="font-medium text-slate-200">0 টাকা</span>
+                                    </div>
+                                    <div class="flex justify-between pl-4">
+                                        <span>কুরিয়ার চার্জ:</span>
+                                        <span id="lblCourierCharge" class="font-medium text-slate-200">0 টাকা</span>
+                                    </div>
+                                    <div class="flex justify-between border-t border-slate-700 pt-2 pl-4 text-sm font-bold text-slate-300">
+                                        <span>সর্বমোট আনুমানিক বিল:</span>
+                                        <span id="lblGrandTotal" class="text-emerald-400">0 টাকা</span>
+                                    </div>
+                                    <div class="flex justify-between pl-4 text-emerald-400 font-semibold no-shape-box" style="background: transparent; padding: 4px 0;">
+                                        <span>অগ্রিম বুকিং মানি (প্যাকেজিং + কুরিয়ার):</span>
+                                        <span id="lblAdvanceCost">0 টাকা</span>
+                                    </div>
+                                    <div class="flex justify-between pl-4 text-amber-400 font-bold no-shape-box cod-black-text" style="background: transparent; padding: 4px 0;">
+                                        <span>ক্যাশ অন ডেলিভারি যোগ্য পরিমাণ:</span>
+                                        <span id="lblCodCost" style="color: inherit;">0 টাকা</span>
+                                    </div>
+                                </div>
+                            </div>
+
+                            <div class="flex justify-between items-end mt-16 pt-8 border-t border-slate-800">
+                                <div class="text-center w-48">
+                                    <p class="text-[11px] text-slate-500">কোটেশন আইডি ভ্যালিডেশন কোড</p>
+                                    <div id="lblValidationCode" class="text-xs font-mono font-bold text-emerald-500 px-2 py-1 mt-1">XXXX-XXXX</div>
+                                </div>
+                                <div class="text-center w-40">
+                                    <div class="border-b border-slate-700 h-8"></div>
+                                    <p class="text-xs text-emerald-400 font-medium mt-2">কর্তৃপক্ষের স্বাক্ষর</p>
+                                </div>
+                            </div>
+                        </div>
+
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const eggTypes = ["ইউরোপীয়ান কোয়েলের বীজ ডিম", "কিং কোয়েলের বীজ ডিম"];
+
+        const packagingMatrix = [
+            {min: 0, max: 10, cost: 15}, {min: 11, max: 20, cost: 25}, {min: 21, max: 30, cost: 40},
+            {min: 31, max: 50, cost: 80}, {min: 51, max: 70, cost: 120}, {min: 71, max: 120, cost: 155}
+        ];
+        
+        const courierMatrix = [
+            {min: 0, max: 30, cost: 115}, {min: 31, max: 50, cost: 135},
+            {min: 51, max: 70, cost: 155}, {min: 71, max: 120, cost: 175}
+        ];
+
+        function processBlockRecurse(qty, rules) {
+            if (qty <= 0) return 0;
+            for(let i=0; i<rules.length; i++) {
+                if (qty >= rules[i].min && qty <= rules[i].max) {
+                    return rules[i].cost;
+                }
+            }
+            return 175 + processBlockRecurse(qty - 120, rules); 
+        }
+
+        function computePackagingCost(totalEggs) {
+            if(totalEggs <= 120) return processBlockRecurse(totalEggs, packagingMatrix);
+            return 155 + computePackagingCost(totalEggs - 120);
+        }
+
+        function computeCourierCost(totalEggs) {
+            if(totalEggs <= 120) return processBlockRecurse(totalEggs, courierMatrix);
+            return 175 + computeCourierCost(totalEggs - 120);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            addProductRow();
+            stampCurrentDate();
+        });
+
+        function stampCurrentDate() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); 
+            const yyyy = today.getFullYear();
+            document.getElementById('lblQuotationDate').innerText = `${dd}-${mm}-${yyyy}`;
+        }
+
+        function generateRandomValidationCode() {
+            const chars = 'ABCDEFGHIJKLMNOPQRSTUVWXYZ0123456789';
+            let segment1 = '';
+            let segment2 = '';
+            for (let i = 0; i < 4; i++) {
+                segment1 += chars.charAt(Math.floor(Math.random() * chars.length));
+                segment2 += chars.charAt(Math.floor(Math.random() * chars.length));
+            }
+            return `${segment1}-${segment2}`;
+        }
+
+        function addProductRow() {
+            const container = document.getElementById('productContainer');
+            const rowCount = container.children.length;
+            
+            let defaultProduct = eggTypes[0];
+            if (rowCount > 0) {
+                const absoluteFirstRowSelect = container.children[0].querySelector('.product-type-select');
+                if (absoluteFirstRowSelect && absoluteFirstRowSelect.value === eggTypes[0]) {
+                    defaultProduct = eggTypes[1];
+                }
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex items-center space-x-2 bg-slate-800 p-2 rounded-xl border border-slate-700 dynamic-prod-row";
+            wrapper.innerHTML = `
+                <select class="product-type-select flex-1 px-2 py-1.5 bg-slate-900 border border-slate-700 text-slate-200 rounded-md focus:outline-none text-xs" required>
+                    <option value="${eggTypes[0]}" ${defaultProduct === eggTypes[0] ? 'selected' : ''}>${eggTypes[0]}</option>
+                    <option value="${eggTypes[1]}" ${defaultProduct === eggTypes[1] ? 'selected' : ''}>${eggTypes[1]}</option>
+                </select>
+                <input type="number" class="product-qty-input w-20 px-2 py-1.5 bg-slate-900 border border-slate-700 text-slate-200 rounded-md focus:outline-none text-xs text-center" placeholder="Qty" min="1" value="10" required>
+                <button type="button" onclick="removeProductRow(this)" class="p-1.5 bg-rose-950/50 hover:bg-rose-900/50 text-rose-400 rounded-md transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v6m-4-6h4" /></svg>
+                </button>
+            `;
+            container.appendChild(wrapper);
+        }
+
+        function removeProductRow(btn) {
+            const container = document.getElementById('productContainer');
+            if(container.children.length > 1) {
+                btn.closest('.dynamic-prod-row').remove();
+            } else {
+                alert("কমপক্ষে একটি পণ্যের তথ্য থাকতে হবে।");
+            }
+        }
+
+        function generateQuotation() {
+            if(!document.getElementById('quotationForm').checkValidity()) {
+                alert('অনুগ্রহ করে পণ্যের সঠিক পরিমাণ ইনপুট দিন।');
+                return;
+            }
+
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            document.getElementById('lblQuotationNo').innerText = `ARAGRO-QT-${randomSuffix}`;
+            document.getElementById('lblValidationCode').innerText = generateRandomValidationCode();
+
+            const rows = document.querySelectorAll('.dynamic-prod-row');
+            const tbody = document.getElementById('lblProductRows');
+            tbody.innerHTML = '';
+            
+            let accumulatedEggsSum = 0;
+
+            rows.forEach((row, index) => {
+                const type = row.querySelector('.product-type-select').value;
+                const qty = parseInt(row.querySelector('.product-qty-input').value) || 0;
+                accumulatedEggsSum += qty;
+
+                const lineCost = qty * 25;
+
+                const tableRow = document.createElement('tr');
+                tableRow.className = "border-b border-slate-800/60 hover:bg-slate-800/30 transition";
+                tableRow.innerHTML = `
+                    <td class="py-3 pl-2 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="py-3 font-medium text-slate-200">${type}</td>
+                    <td class="py-3 text-right font-semibold text-slate-100">${qty} পিছ</td>
+                    <td class="py-3 text-right text-slate-400">25 টাকা</td>
+                    <td class="py-3 text-right pr-2 font-semibold text-slate-100">${lineCost.toFixed(2)} টাকা</td>
+                `;
+                tbody.appendChild(tableRow);
+            });
+
+            const calculatedEggCost = accumulatedEggsSum * 25;
+            const calculatedPkgCost = computePackagingCost(accumulatedEggsSum);
+            const calculatedCourierCost = computeCourierCost(accumulatedEggsSum);
+            const absoluteGrandTotal = calculatedEggCost + calculatedPkgCost + calculatedCourierCost;
+            
+            const advanceTotal = calculatedPkgCost + calculatedCourierCost;
+            const codTotal = calculatedEggCost;
+
+            document.getElementById('lblTotalEggs').innerText = `${accumulatedEggsSum} পিছ`;
+            document.getElementById('lblEggCost').innerText = `${calculatedEggCost.toFixed(0)} টাকা`;
+            document.getElementById('lblPackagingCharge').innerText = `${calculatedPkgCost.toFixed(0)} টাকা`;
+            document.getElementById('lblCourierCharge').innerText = `${calculatedCourierCost.toFixed(0)} টাকা`;
+            document.getElementById('lblGrandTotal').innerText = `${absoluteGrandTotal.toFixed(0)} টাকা`;
+            document.getElementById('lblAdvanceCost').innerText = `${advanceTotal.toFixed(0)} টাকা`;
+            document.getElementById('lblCodCost').innerText = `${codTotal.toFixed(0)} টাকা`;
+
+            document.getElementById('actionButtonsZone').classList.remove('hidden');
+            
+            if(window.innerWidth > 1024) {
+                document.getElementById('previewGridZone').style.style.display = 'flex';
+            }
+        }
+
+        function executeHighResCapture(callback) {
+            const originElement = document.getElementById('invoiceCaptureArea');
+            
+            // CRITICAL FIX: To prevent the onscreen live desktop grid preview from breaking or jumping, 
+            // we NEVER change or modify the inline properties of the active live container.
+            // Instead, we build an isolated fixed-width isolated block inside an unseen absolute sandbox.
+            const sandboxContainer = document.createElement('div');
+            sandboxContainer.style.position = 'absolute';
+            sandboxContainer.style.left = '-9999px';
+            sandboxContainer.style.top = '-9999px';
+            sandboxContainer.style.width = '793px'; // Exact 210mm standard A4 portrait pixel resolution context
+            sandboxContainer.style.height = '1122px'; // Exact 297mm standard A4 portrait pixel resolution context
+            sandboxContainer.style.overflow = 'hidden';
+            sandboxContainer.style.boxSizing = 'border-box';
+            document.body.appendChild(sandboxContainer);
+            
+            // Clone and apply standard printing export mode securely without altering the visible active user interface
+            const standaloneClone = originElement.cloneNode(true);
+            standaloneClone.classList.add('export-light-mode');
+            standaloneClone.style.transform = 'none';
+            standaloneClone.style.width = '793px';
+            standaloneClone.style.height = '1122px';
+            standaloneClone.style.boxSizing = 'border-box';
+            
+            sandboxContainer.appendChild(standaloneClone);
+            
+            setTimeout(() => {
+                html2canvas(standaloneClone, {
+                    scale: 2, // Ultra HD export quality
+                    useCORS: true,
+                    allowTaint: true,
+                    width: 793,
+                    height: 1122,
+                    windowWidth: 793,
+                    windowHeight: 1122
+                }).then(canvas => {
+                    document.body.removeChild(sandboxContainer);
+                    callback(canvas);
+                });
+            }, 100);
+        }
+
+        function downloadJPG() {
+            executeHighResCapture(canvas => {
+                const link = document.createElement('a');
+                link.download = `${document.getElementById('lblQuotationNo').innerText || 'quotation'}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 0.95);
+                link.click();
+            });
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            executeHighResCapture(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const pdf = new jsPDF({
+                    orientation: 'portrait',
+                    unit: 'mm',
+                    format: 'a4'
+                });
+                pdf.addImage(imgData, 'JPEG', 0, 0, 210, 297);
+                pdf.save(`${document.getElementById('lblQuotationNo').innerText || 'quotation'}.pdf`);
+            });
+        }
+
+        function triggerPrint() {
+            const currentPreviewElement = document.getElementById('invoiceCaptureArea');
+            const printContainer = document.getElementById('printDualContainer');
+            
+            printContainer.innerHTML = '';
+            
+            const leftInvoiceClone = currentPreviewElement.cloneNode(true);
+            leftInvoiceClone.className = "print-half-invoice";
+            leftInvoiceClone.style.transform = "none";
+            
+            const rightInvoiceClone = currentPreviewElement.cloneNode(true);
+            rightInvoiceClone.className = "print-half-invoice";
+            rightInvoiceClone.style.transform = "none";
+            
+            printContainer.appendChild(leftInvoiceClone);
+            printContainer.appendChild(rightInvoiceClone);
+            
+            window.print();
+        }
+
+        function copyQuotationText() {
+            const qNo = document.getElementById('lblQuotationNo').innerText;
+            const qDate = document.getElementById('lblQuotationDate').innerText;
+            const totalEggs = document.getElementById('lblTotalEggs').innerText;
+            const eggCost = document.getElementById('lblEggCost').innerText;
+            const pkgCharge = document.getElementById('lblPackagingCharge').innerText;
+            const courierCharge = document.getElementById('lblCourierCharge').innerText;
+            const grandTotal = document.getElementById('lblGrandTotal').innerText;
+            const advanceCost = document.getElementById('lblAdvanceCost').innerText;
+            const codCost = document.getElementById('lblCodCost').innerText;
+
+            const formattedText = "এ আর এগ্রো এন্ড হ্যাচারী\n" +
+                "কোটেশন নম্বর: " + qNo + "\n" +
+                "তারিখ: " + qDate + "\n\n" +
+                "পণ্যের মূল্য তালিকা:\n" +
+                "মোট ডিম: " + totalEggs + "\n" +
+                "ডিমের মূল্য: " + eggCost + "\n" +
+                "প্যাকেজিং চার্জ: " + pkgCharge + "\n" +
+                "কুরিয়ার চার্জ: " + courierCharge + "\n" +
+                "সর্বমোট আনুমানিক মূল্য: " + grandTotal + "\n" +
+                "অগ্রিম পেমেন্ট যোগ্য পরিমাণ: " + advanceCost + "\n" +
+                "ক্যাশ অন ডেলিভারি যোগ্য পরিমাণ: " + codCost + "\n\n" +
+                "বিশেষ দ্রষ্টব্যঃ এই কোটেশনে উল্লেখিত পণ্যের মূল্য বাজার পরিবর্তন সাপেক্ষে সাময়িক পরিবর্তন হতে পারে। প্যাকেজিং ও কুরিয়ার চার্জ অগ্রিম প্রদান সাপেক্ষে অর্ডার কনফার্ম করা হয়।\n\n" +
+                "বিকাশ/নগদ/রকেট (পার্সোনাল): 01937-866274\n" +
+                "Payment বিকাশ (মার্চেন্ট): 01612-292789\n\n" +
+                "আমাদের সাথে থাকার জন্য আপনাকে আন্তরিক ধন্যবাদ।";
+
+            navigator.clipboard.writeText(formattedText).then(() => {
+                alert("কোটেশনের টেক্সট সফলভাবে বাংলায় কপি হয়েছে।");
+            }).catch(err => {
+                alert("কপি করতে সমস্যা হয়েছে।");
+            });
+        }
+
+        async function shareQuotation() {
+            executeHighResCapture(async (canvas) => {
+                canvas.toBlob(async (blob) => {
+                    const documentFile = new File([blob], `${document.getElementById('lblQuotationNo').innerText}.jpg`, { type: 'image/jpeg' });
+                    if (navigator.canShare && navigator.canShare({ files: [documentFile] })) {
+                        try {
+                            await navigator.share({
+                                files: [documentFile],
+                                title: 'এ আর এগ্রো এন্ড হ্যাচারী কোটেশন',
+                                text: `Quotation No: ${document.getElementById('lblQuotationNo').innerText}`
+                            });
+                        } catch (error) {
+                            fallbackSharePrompt();
+                        }
+                    } else {
+                        fallbackSharePrompt();
+                    }
+                }, 'image/jpeg');
+            });
+        }
+
+        function fallbackSharePrompt() {
+            alert("আপনার ব্রাউজারে সরাসরি শেয়ার অপশনটি সাপোর্টেড নয়। দয়া করে JPG/PDF ডাউনলোড করে হোয়াটসঅ্যাপ বা মেসেঞ্জারে শেয়ার করুন।");
+        }
+    </script>
+</body>
+</html>

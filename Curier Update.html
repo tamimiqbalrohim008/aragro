@@ -1,0 +1,414 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>অর্ডার ট্র্যাকিং সিস্টেম - এ আর এগ্রো</title>
+    <link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600;700&display=swap" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.4.0/css/all.min.css">
+    
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    
+    <style>
+        * { box-sizing: border-box; font-family: 'Hind Siliguri', sans-serif; margin: 0; padding: 0; }
+        body { background: linear-gradient(135deg, #e0eafc, #cfdef3); min-height: 100vh; display: flex; justify-content: center; align-items: center; padding: 15px; }
+        .container { background: #ffffff; max-width: 650px; width: 100%; padding: 25px; border-radius: 16px; box-shadow: 0 10px 30px rgba(0, 0, 0, 0.1); }
+        .logo-area { text-align: center; margin-bottom: 25px; }
+        .logo-area i { font-size: 2.8rem; color: #2563eb; margin-bottom: 10px; }
+        .logo-area h2 { color: #1e293b; font-size: 24px; font-weight: 700; }
+        .logo-area p { color: #64748b; font-size: 14px; }
+        
+        /* রেসপন্সিভ সার্চ বক্স */
+        .search-box { display: flex; position: relative; margin-bottom: 25px; box-shadow: 0 4px 6px -1px rgba(0,0,0,0.05); border-radius: 8px; border: 2px solid #e2e8f0; transition: border-color 0.3s; background: #fff; }
+        .search-box:focus-within { border-color: #2563eb; }
+        .search-box input { flex: 1; padding: 14px 10px 14px 40px; border: none; font-size: 15px; outline: none; width: 100%; min-width: 0; }
+        .search-box i.search-icon { position: absolute; left: 15px; top: 50%; transform: translateY(-50%); color: #94a3b8; font-size: 16px; pointer-events: none; }
+        .search-box button { padding: 0 20px; background: #2563eb; color: white; border: none; font-size: 15px; font-weight: 600; cursor: pointer; transition: background 0.2s; white-space: nowrap; }
+        .search-box button:hover { background: #1d4ed8; }
+        
+        .loader { display: none; text-align: center; margin: 20px 0; color: #2563eb; }
+        .error-msg { display: none; background: #fef2f2; color: #dc2626; padding: 12px; border-radius: 8px; text-align: center; font-weight: 600; margin-bottom: 20px; border: 1px solid #fee2e2; }
+        
+        /* রেজাল্ট কার্ড */
+        .result-card { display: none; border: 1px solid #e2e8f0; border-radius: 12px; overflow: hidden; background: #f8fafc; animation: fadeIn 0.5s ease; }
+        @keyframes fadeIn { from { opacity: 0; transform: translateY(10px); } to { opacity: 1; transform: translateY(0); } }
+        .card-header { background: #1e293b; color: white; padding: 15px 20px; display: flex; justify-content: space-between; align-items: center; }
+        .card-header h3 { font-size: 17px; font-weight: 600; }
+        .status-badge { padding: 4px 12px; border-radius: 50px; font-size: 13px; font-weight: 600; }
+        .status-pickup { background: #fef3c7; color: #d97706; }
+        .status-pending { background: #fee2e2; color: #dc2626; }
+        .status-default { background: #e2e8f0; color: #475569; }
+        .card-body { padding: 15px; }
+        
+        /* গ্রিড লেআউট */
+        .info-grid { display: grid; grid-template-columns: 1fr 1fr; gap: 10px; }
+        .full-width { grid-column: span 2; }
+        .info-item { background: white; padding: 10px 12px; border-radius: 8px; border: 1px solid #edf2f7; }
+        .info-item label { display: block; font-size: 11px; color: #64748b; margin-bottom: 2px; font-weight: 600; }
+        .info-item p { color: #334155; font-size: 14px; font-weight: 600; }
+        
+        /* এক লাইনে প্রোডাক্ট গ্রিড */
+        .product-inline-row { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+        .product-section { background: #eff6ff; border: 1px dashed #bfdbfe; }
+        .product-section label { color: #1e40af; }
+        .product-section p { color: #1e3a8a; }
+
+        /* এক লাইনে টাকার গ্রিড */
+        .price-inline-row { grid-column: span 2; display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 8px; }
+
+        .track-btn { display: flex; align-items: center; justify-content: center; gap: 8px; background: #10b981; color: white; text-decoration: none; padding: 12px; border-radius: 8px; margin-top: 15px; font-weight: 700; text-align: center; transition: background 0.2s; font-size: 15px; box-shadow: 0 4px 6px -1px rgba(16, 185, 129, 0.2); }
+        .track-btn:hover { background: #059669; }
+
+        /* বাটন ৩টি এক লাইনে সাজানোর স্পেশাল ডিজাইন */
+        .action-buttons-zone { display: none; margin-top: 12px; padding-top: 12px; border-top: 1px dashed #e2e8f0; }
+        .inline-btn-group { display: grid; grid-template-columns: 1fr 1fr 1fr; gap: 6px; }
+        .inline-btn-group button { padding: 8px 4px; color: white; font-size: 11px; font-weight: 600; border: none; border-radius: 6px; cursor: pointer; transition: background 0.2s; display: flex; align-items: center; justify-content: center; gap: 4px; white-space: nowrap; }
+        .btn-jpg { background: #2563eb; }
+        .btn-jpg:hover { background: #1d4ed8; }
+        .btn-pdf { background: #e11d48; }
+        .btn-pdf:hover { background: #be123c; }
+        .btn-copy-text { background: #475569; }
+        .btn-copy-text:hover { background: #334155; }
+        
+        /* এক্সপোর্ট লাইট মোড */
+        .export-light-mode { background: #ffffff !important; padding: 20px !important; border: none !important; }
+        .export-light-mode .info-item { background: #f8fafc !important; border: 1px solid #e2e8f0 !important; }
+        .export-light-mode .product-section { background: #eff6ff !important; border: 1px dashed #bfdbfe !important; }
+        .export-light-mode .track-btn, .export-light-mode .action-buttons-zone { display: none !important; }
+
+        /* মোবাইল স্ক্রিনের জন্য অতিরিক্ত সামঞ্জস্য */
+        @media (max-width: 480px) {
+            .container { padding: 15px; }
+            .logo-area h2 { font-size: 20px; }
+            .search-box input { padding: 12px 10px 12px 35px; font-size: 14px; }
+            .search-box i.search-icon { left: 12px; font-size: 14px; }
+            .search-box button { padding: 0 15px; font-size: 14px; }
+            .info-item p { font-size: 13px; }
+            .inline-btn-group button { font-size: 10px; padding: 8px 2px; }
+        }
+    </style>
+</head>
+<body>
+
+<div class="container">
+    <div class="logo-area">
+        <i class="fa-solid fa-boxes-packing"></i>
+        <h2>এ আর এগ্রো কুরিয়ার ট্র্যাকিং</h2>
+        <p>আপনার মেমো নম্বর বা মোবাইল নম্বর দিয়ে অর্ডারের সর্বশেষ অবস্থা জানুন</p>
+    </div>
+    
+    <div class="search-box">
+        <i class="fa-solid fa-magnifying-glass search-icon"></i>
+        <input type="text" id="searchInput" placeholder="মেমো নম্বর বা মোবাইল নং দিন...">
+        <button onclick="trackOrder()">খুঁজুন</button>
+    </div>
+
+    <div id="loader" class="loader">
+        <i class="fa-solid fa-spinner fa-spin fa-2x"></i>
+        <p style="margin-top: 5px;">তথ্য খোঁজা হচ্ছে...</p>
+    </div>
+
+    <div id="errorMsg" class="error-msg">দুঃখিত! এই নম্বরটিতে কোনো অর্ডার তথ্য পাওয়া যায়নি।</div>
+
+    <div id="resultCard" class="result-card">
+        <div id="invoiceCaptureArea">
+            <div class="card-header">
+                <h3 id="resMemo">মেমো নম্বর</h3>
+                <span id="resStatus" class="status-badge">স্ট্যাটাস</span>
+            </div>
+            <div class="card-body">
+                <div class="info-grid">
+                    <div class="info-item"><label>অর্ডারকারীর নাম</label><p id="resName">-</p></div>
+                    <div class="info-item"><label>মোবাইল নম্বর</label><p id="resPhone">-</p></div>
+                    <div class="info-item"><label>অর্ডারের তারিখ</label><p id="resDate">-</p></div>
+                    <div class="info-item"><label>কুরিয়ারে প্রদানের তারিখ</label><p id="resCourierDate">-</p></div>
+                    
+                    <div class="product-inline-row">
+                        <div class="info-item product-section"><label>ইউরোপীয়ান</label><p id="resEuro">-</p></div>
+                        <div class="info-item product-section"><label>কিং</label><p id="resKing">-</p></div>
+                        <div class="info-item product-section"><label>মোট পণ্য</label><p id="resTotalQty">-</p></div>
+                    </div>
+                    
+                    <div class="price-inline-row">
+                        <div class="info-item"><label>মোট টাকা</label><p id="resTotal" style="color: #2563eb;">-</p></div>
+                        <div class="info-item"><label>অগ্রিম টাকা</label><p id="resAdvance" style="color: #10b981;">-</p></div>
+                        <div class="info-item"><label>বাকি টাকা</label><p id="resDue" style="color: #dc2626;">-</p></div>
+                    </div>
+
+                    <div class="info-item full-width"><label>ডেলিভেরী ঠিকানা</label><p id="resAddress">-</p></div>
+                </div>
+            </div>
+        </div>
+        
+        <div style="padding: 0 15px 15px 15px;">
+            <a id="resTrackLink" href="#" target="_blank" class="track-btn"><i class="fa-solid fa-location-dot"></i> লাইভ কুরিয়ার ট্র্যাক করুন</a>
+            
+            <div id="actionButtonsZone" class="action-buttons-zone">
+                <div class="inline-btn-group">
+                    <button type="button" onclick="downloadInvoiceJPG()" class="btn-jpg">
+                        <i class="fa-solid fa-image"></i> JPG ডাউনলোড
+                    </button>
+                    <button type="button" onclick="downloadInvoicePDF()" class="btn-pdf">
+                        <i class="fa-solid fa-file-pdf"></i> PDF ডাউনলোড
+                    </button>
+                    <button type="button" onclick="copyInvoiceText()" class="btn-copy-text">
+                        <i class="fa-solid fa-copy"></i> মেমো কপি
+                    </button>
+                </div>
+            </div>
+        </div>
+
+    </div>
+</div>
+
+<script>
+const sheetId = '1IxMqQKrcNks3i-b9AlSVbBdqtA3tIG3IroGLFCgUXs8';
+let searchKeyword = '';
+let currentMemoGlobal = 'memo_invoice';
+
+function fixGoogleDate(str) {
+    if (!str) return '-';
+    let cleanStr = String(str).trim();
+    if (!cleanStr.includes('Date')) return cleanStr;
+
+    try {
+        let matches = cleanStr.match(/\d+/g);
+        if (matches && matches.length >= 3) {
+            let num = matches.map(Number);
+            let year = num[0];
+            let month = num[1] + 1; 
+            let day = num[2];
+            if (year === 1899) return '-'; 
+            return `${day < 10 ? '0' + day : day}/${month < 10 ? '0' + month : month}/${year}`;
+        }
+    } catch (err) {
+        return cleanStr;
+    }
+    return cleanStr;
+}
+
+function trackOrder() {
+    const input = document.getElementById('searchInput').value.trim();
+    if (!input) {
+        alert("অনুগ্রহ করে একটি মেমো বা মোবাইল নম্বর লিখুন।");
+        return;
+    }
+    
+    searchKeyword = input;
+    document.getElementById('errorMsg').style.display = 'none';
+    document.getElementById('resultCard').style.display = 'none';
+    document.getElementById('actionButtonsZone').style.display = 'none';
+    document.getElementById('loader').style.display = 'block';
+
+    const oldScript = document.getElementById('sheetScriptInjection');
+    if (oldScript) oldScript.remove();
+
+    const script = document.createElement('script');
+    script.id = 'sheetScriptInjection';
+    script.src = `https://docs.google.com/spreadsheets/d/${sheetId}/gviz/tq?tqx=responseHandler:handleSheetResponse&_cb=${Date.now()}`;
+    
+    script.onerror = function() {
+        document.getElementById('loader').style.display = 'none';
+        alert("গুগল শিট থেকে তথ্য পাওয়া যায়নি। অনুগ্রহ করে শিটের Share settings চেক করুন।");
+    };
+    
+    document.body.appendChild(script);
+}
+
+function handleSheetResponse(response) {
+    document.getElementById('loader').style.display = 'none';
+    
+    if (!response || !response.table || !response.table.rows) {
+        document.getElementById('errorMsg').style.display = 'block';
+        return;
+    }
+
+    const rows = response.table.rows;
+    let matchData = null;
+
+    let parseCell = (cells, index) => {
+        if (!cells || !cells[index] || cells[index].v === null || cells[index].v === undefined) return '';
+        return cells[index].f ? String(cells[index].f).trim() : String(cells[index].v).trim();
+    };
+
+    for (let i = 0; i < rows.length; i++) {
+        let cells = rows[i].c;
+        if (!cells) continue;
+
+        let currentMemo = parseCell(cells, 0);  
+        let currentPhone = parseCell(cells, 4); 
+
+        if (!currentMemo && !currentPhone) continue;
+
+        if (currentMemo === searchKeyword || currentPhone === searchKeyword || ("0" + currentPhone) === searchKeyword || currentPhone === ("0" + searchKeyword)) {
+            matchData = {
+                memo: currentMemo,
+                date: parseCell(cells, 1),       
+                name: parseCell(cells, 3),       
+                phone: currentPhone,
+                address: parseCell(cells, 5),    
+                european: parseCell(cells, 6),   
+                king: parseCell(cells, 7),       
+                totalQty: parseCell(cells, 8),   
+                totalPrice: parseCell(cells, 9), 
+                advance: parseCell(cells, 10),   
+                due: parseCell(cells, 11),       
+                status: parseCell(cells, 14),    
+                trackLink: parseCell(cells, 15), 
+                courierDate: parseCell(cells, 16)
+            };
+            break;
+        }
+    }
+
+    if (matchData) {
+        currentMemoGlobal = matchData.memo || 'ARAGRO_ORDER';
+        document.getElementById('resMemo').innerText = "মেমো নং: " + currentMemoGlobal;
+        document.getElementById('resName').innerText = matchData.name || '-';
+        document.getElementById('resPhone').innerText = matchData.phone.startsWith('0') ? matchData.phone : '0' + matchData.phone;
+        
+        let parsedDate = fixGoogleDate(matchData.date);
+        let parsedCourier = fixGoogleDate(matchData.courierDate);
+
+        document.getElementById('resDate').innerText = parsedDate !== '' ? parsedDate : '-';
+        document.getElementById('resCourierDate').innerText = parsedCourier !== '' ? parsedCourier : 'প্রদান করা হয়নি';
+        
+        document.getElementById('resEuro').innerText = (matchData.european || '0') + " পিস";
+        document.getElementById('resKing').innerText = (matchData.king || '0') + " পিস";
+        document.getElementById('resTotalQty').innerText = (matchData.totalQty || '0') + " পিস";
+
+        document.getElementById('resTotal').innerText = (matchData.totalPrice || '0') + " ৳";
+        document.getElementById('resAdvance').innerText = (matchData.advance || '0') + " ৳";
+        document.getElementById('resDue').innerText = (matchData.due || '0') + " ৳";
+        
+        document.getElementById('resAddress').innerText = matchData.address || '-';
+
+        const badge = document.getElementById('resStatus');
+        const orderStatus = matchData.status ? matchData.status.toLowerCase() : 'pending';
+        badge.innerText = matchData.status || 'Pending';
+        
+        if (orderStatus === 'pending') {
+            badge.className = 'status-badge status-pending';
+        } else if (orderStatus === 'পিকআপ' || orderStatus === 'pickup') {
+            badge.className = 'status-badge status-pickup';
+        } else {
+            badge.className = 'status-badge status-default';
+        }
+
+        if(matchData.trackLink && (matchData.trackLink.startsWith('http') || matchData.trackLink.includes('.'))) {
+            let cleanLink = matchData.trackLink.startsWith('http') ? matchData.trackLink : 'https://' + matchData.trackLink;
+            document.getElementById('resTrackLink').href = cleanLink;
+            document.getElementById('resTrackLink').style.display = 'flex';
+        } else {
+            document.getElementById('resTrackLink').style.display = 'none';
+        }
+
+        document.getElementById('resultCard').style.display = 'block';
+        document.getElementById('actionButtonsZone').style.display = 'block';
+    } else {
+        document.getElementById('errorMsg').style.display = 'block';
+    }
+}
+
+function executeHighResCapture(callback) {
+    const originElement = document.getElementById('invoiceCaptureArea');
+    const sandboxContainer = document.createElement('div');
+    sandboxContainer.style.position = 'absolute';
+    sandboxContainer.style.left = '-9999px';
+    sandboxContainer.style.top = '-9999px';
+    sandboxContainer.style.width = '600px';
+    sandboxContainer.style.overflow = 'hidden';
+    document.body.appendChild(sandboxContainer);
+    
+    const standaloneClone = originElement.cloneNode(true);
+    standaloneClone.classList.add('export-light-mode');
+    standaloneClone.style.width = '600px';
+    
+    sandboxContainer.appendChild(standaloneClone);
+    
+    setTimeout(() => {
+        html2canvas(standaloneClone, {
+            scale: 2, 
+            useCORS: true,
+            allowTaint: true,
+            width: 600
+        }).then(canvas => {
+            document.body.removeChild(sandboxContainer);
+            callback(canvas);
+        });
+    }, 120);
+}
+
+function downloadInvoiceJPG() {
+    executeHighResCapture(canvas => {
+        const link = document.createElement('a');
+        link.download = `${currentMemoGlobal}_invoice.jpg`;
+        link.href = canvas.toDataURL('image/jpeg', 0.95);
+        link.click();
+    });
+}
+
+function downloadInvoicePDF() {
+    const { jsPDF } = window.jspdf;
+    executeHighResCapture(canvas => {
+        const imgData = canvas.toDataURL('image/jpeg', 1.0);
+        const imgWidth = 210; 
+        const imgHeight = (canvas.height * imgWidth) / canvas.width;
+        
+        const pdf = new jsPDF({
+            orientation: 'portrait',
+            unit: 'mm',
+            format: 'a4'
+        });
+        
+        pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+        pdf.save(`${currentMemoGlobal}_invoice.pdf`);
+    });
+}
+
+function copyInvoiceText() {
+    const memo = currentMemoGlobal;
+    const name = document.getElementById('resName').innerText;
+    const phone = document.getElementById('resPhone').innerText;
+    const date = document.getElementById('resDate').innerText;
+    const status = document.getElementById('resStatus').innerText;
+    const euro = document.getElementById('resEuro').innerText;
+    const king = document.getElementById('resKing').innerText;
+    const totalQty = document.getElementById('resTotalQty').innerText;
+    const total = document.getElementById('resTotal').innerText;
+    const advance = document.getElementById('resAdvance').innerText;
+    const due = document.getElementById('resDue').innerText;
+    const address = document.getElementById('resAddress').innerText;
+
+    const formattedText = `*এ আর এগ্রো কুরিয়ার মেমো ও ট্র্যাকিং*\n` +
+        `-----------------------------\n` +
+        `• মেমো নং: ${memo}\n` +
+        `• স্ট্যাটাস: ${status}\n` +
+        `• নাম: ${name}\n` +
+        `• মোবাইল: ${phone}\n` +
+        `• অর্ডার তারিখ: ${date}\n` +
+        `-----------------------------\n` +
+        `*পণ্যের বিবরণ:*\n` +
+        `• ইউরোপীয়ান: ${euro}\n` +
+        `• কিং: ${king}\n` +
+        `• মোট পণ্য: ${totalQty}\n` +
+        `-----------------------------\n` +
+        `*টাকার হিসাব:*\n` +
+        `• মোট টাকা: ${total}\n` +
+        `• অগ্রিম টাকা: ${advance}\n` +
+        `• বাকি টাকা: ${due}\n` +
+        `-----------------------------\n` +
+        `• ঠিকানা: ${address}\n\n` +
+        `আমাদের সাথে থাকার জন্য ধন্যবাদ!`;
+
+    navigator.clipboard.writeText(formattedText).then(() => {
+        alert("মেমোর বিবরণ সফলভাবে কপি হয়েছে!");
+    }).catch(err => {
+        alert("কপি করতে সমস্যা হয়েছে।");
+    });
+}
+</script>
+
+</body>
+</html>
