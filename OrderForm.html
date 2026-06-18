@@ -1,0 +1,878 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>এ আর এগ্রো এন্ড হ্যাচারী ইনভয়েস জেনারেটর</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@400;700&display=swap" rel="stylesheet">
+    <style>
+        body {
+            font-family: 'Inter', 'Noto Serif Bengali', sans-serif;
+            background-color: #0f172a;
+            color: #f8fafc;
+        }
+        .invoice-print-area {
+            width: 210mm;
+            min-height: 297mm;
+            background-color: #1e293b;
+            color: #f1f5f9;
+            box-shadow: 0 25px 50px -12px rgba(0, 0, 0, 0.5);
+            position: relative;
+            box-sizing: border-box;
+        }
+        .watermark {
+            position: absolute;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(-30deg);
+            font-size: 110px;
+            font-weight: 800;
+            color: rgba(239, 68, 68, 0.08);
+            text-transform: uppercase;
+            letter-spacing: 12px;
+            pointer-events: none;
+            user-select: none;
+            z-index: 10;
+            display: inline-block;
+            white-space: nowrap;
+            width: auto !important;
+            height: auto !important;
+        }
+        .export-light-mode { background-color: #ffffff !important; color: #1e293b !important; }
+        .export-light-mode .watermark { color: rgba(239, 68, 68, 0.06) !important; }
+        .export-light-mode h1, .export-light-mode .text-emerald-400 { color: #059669 !important; }
+        .export-light-mode .text-slate-400, .export-light-mode .text-slate-500 { color: #4b5563 !important; }
+        .export-light-mode .text-slate-100, .export-light-mode .text-slate-200, .export-light-mode .text-slate-300 { color: #0f172a !important; }
+        .export-light-mode .bg-slate-800\/50, .export-light-mode .bg-slate-800\/40 { background-color: #f1f5f9 !important; border-color: #cbd5e1 !important; }
+        .export-light-mode .border-slate-700, .export-light-mode .border-slate-800, .export-light-mode .divide-slate-800 { border-color: #e2e8f0 !important; }
+        .export-light-mode .bg-emerald-500\/5 { background-color: #ecfdf5 !important; }
+        .export-light-mode .bg-amber-500\/5 { background-color: #fffbeb !important; }
+        .export-light-mode .text-amber-400 { color: #b45309 !important; }
+
+        @page { size: A4 landscape; margin: 0; }
+        @media print {
+            body { background: none !important; color: #000000 !important; padding: 0 !important; margin: 0 !important; }
+            .max-w-7xl { max-width: 100% !important; width: 100% !important; padding: 0 !important; margin: 0 !important; }
+            body * { visibility: hidden; }
+            #printDualContainer, #printDualContainer * { visibility: visible; }
+            #printDualContainer {
+                position: absolute; left: 0; top: 0; width: 297mm; height: 210mm; max-height: 210mm;
+                display: flex !important; flex-direction: row !important; justify-content: space-between !important;
+                align-items: stretch !important; padding: 8mm !important; box-sizing: border-box !important;
+                gap: 6mm !important; background-color: #ffffff !important; page-break-inside: avoid;
+            }
+            .print-half-invoice {
+                width: 137mm !important; height: 194mm !important; max-height: 194mm !important; min-height: 194mm !important;
+                padding: 6mm !important; border: 1px dashed #cbd5e1 !important; background-color: #ffffff !important;
+                color: #1e293b !important; box-shadow: none !important; transform: none !important;
+                position: relative !important; display: flex !important; flex-direction: column !important;
+                justify-content: space-between !important; box-sizing: border-box !important; overflow: hidden !important;
+            }
+            .print-half-invoice .watermark { font-size: 70px !important; color: rgba(239, 68, 68, 0.06) !important; }
+            .print-half-invoice h1, .print-half-invoice .text-emerald-400 { color: #059669 !important; }
+            .print-half-invoice .text-slate-400, .print-half-invoice .text-slate-500 { color: #4b5563 !important; }
+            .print-half-invoice .text-slate-100, .print-half-invoice .text-slate-200, .print-half-invoice .text-slate-300 { color: #0f172a !important; }
+            .print-half-invoice .bg-slate-800\/50, .print-half-invoice .bg-slate-800\/40 { background-color: #f1f5f9 !important; border-color: #cbd5e1 !important; }
+            .print-half-invoice .border-slate-700, .print-half-invoice .border-slate-800, .print-half-invoice .divide-slate-800 { border-color: #e2e8f0 !important; }
+            .print-half-invoice .bg-emerald-500\/5 { background-color: #ecfdf5 !important; }
+            .print-half-invoice .bg-amber-500\/5 { background-color: #fffbeb !important; }
+            .print-half-invoice .text-amber-400 { color: #b45309 !important; }
+            .no-print { display: none !important; }
+        }
+
+        #previewGridZone { display: flex; flex-direction: column; align-items: center; }
+        
+        /* মোবাইল এবং রেসপন্সিভ ভিউ এর জন্য নতুন ইনভয়েস সামারি স্টাইল */
+        #mobileSummaryZone { display: none; }
+        
+        @media (max-width: 1024px) {
+            #previewGridZone { width: 100% !important; }
+            .invoice-preview-container { display: none !important; } /* বড় ইনভয়েস হাইড */
+            #mobileSummaryZone { display: block !important; width: 100%; } /* মোবাইল সামারি শো */
+        }
+        #lblCustName, #lblCustPhone, #lblCustAddress, #lblProductRows, .invoice-print-area td, .invoice-print-area p, .invoice-print-area span {
+            user-select: text !important; -webkit-user-select: text !important;
+        }
+    </style>
+</head>
+<body>
+
+    <div id="printDualContainer" style="display: none;"></div>
+
+    <div id="mainDashboard" class="max-w-7xl mx-auto grid grid-cols-1 lg:grid-cols-12 gap-8 p-4 lg:p-8">
+        <div id="inputFormPanel" class="lg:col-span-5 bg-slate-900/80 backdrop-blur-md p-6 rounded-2xl shadow-2xl border border-slate-800 no-print">
+            <div class="flex items-center space-x-3 mb-6 border-b border-slate-800 pb-4">
+                <div class="bg-gradient-to-tr from-emerald-500 to-teal-600 text-white p-2.5 rounded-xl shadow-lg shadow-emerald-500/20">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-6 w-6" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10.325 4.317c.426-1.756 2.924-1.756 3.35 0a1.724 1.724 0 002.573 1.066c1.543-.94 3.31.826 2.37 2.37a1.724 1.724 0 001.065 2.572c1.756.426 1.756 2.924 0 3.35a1.724 1.724 0 00-1.066 2.573c.94 1.543-.826 3.31-2.37 2.37a1.724 1.724 0 00-2.572 1.065c-.426 1.756-2.924 1.756-3.35 0a1.724 1.724 0 00-2.573-1.066c-1.543.94-3.31-.826-2.37-2.37a1.724 1.724 0 00-1.065-2.572c-1.756-.426-1.756-2.924 0-3.35a1.724 1.724 0 001.066-2.573c-.94-1.543.826-3.31 2.37-2.37.996.608 2.296.07 2.572-1.065z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 12a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                </div>
+                <h2 class="text-xl font-bold bg-gradient-to-r from-emerald-400 to-teal-300 bg-clip-text text-transparent"> এ আর এগ্রো ইনভয়েস জেনারেটর</h2>
+            </div>
+
+            <form id="invoiceForm" onsubmit="event.preventDefault();" class="space-y-4">
+                <h3 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider">গ্রাহকের তথ্য (Customer Info)</h3>
+                
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">গ্রাহকের সম্পূর্ণ নাম</label>
+                    <input type="text" id="custName" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none transition" placeholder="মোঃ আব্দুর রহমান" required>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">মোবাইল নম্বর</label>
+                    <input type="text" id="custMobile" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none transition" placeholder="01712345678" required>
+                    <p id="mobileError" class="text-red-400 text-xs mt-1 hidden">দয়া করে একটি সঠিক ১১-ডিজিটের বাংলাদেশি মোবাইল নম্বর দিন।</p>
+                </div>
+
+                <div class="grid grid-cols-2 gap-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">জেলা</label>
+                        <select id="custDistrict" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition" required>
+                            <option value="">জেলা নির্বাচন করুন</option>
+                        </select>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">উপজেলা</label>
+                        <select id="custUpazila" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 focus:ring-2 focus:ring-emerald-500 focus:outline-none transition disabled:opacity-50" required disabled>
+                            <option value="">উপজেলা নির্বাচন করুন</option>
+                        </select>
+                    </div>
+                </div>
+
+                <div>
+                    <label class="block text-xs font-medium text-slate-400 mb-1">গ্রাম / এলাকা</label>
+                    <input type="text" id="custVillage" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:border-transparent focus:outline-none transition" placeholder="উদাহরণ: শেরুয়া বটতলা" required>
+                </div>
+
+                <h3 class="text-xs font-semibold text-emerald-400 uppercase tracking-wider pt-2">পণ্যের তালিকা (Product Items)</h3>
+                <div id="productContainer" class="space-y-3"></div>
+
+                <button type="button" onclick="addProductRow()" class="w-full flex items-center justify-center space-x-1 py-2 px-4 border border-dashed border-emerald-500/50 rounded-lg text-emerald-400 hover:bg-emerald-500/10 transition text-sm font-medium">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4" /></svg>
+                    <span>নতুন পণ্য যোগ করুন</span>
+                </button>
+
+                <div class="pt-4 border-t border-slate-800">
+                    <button type="button" onclick="generateInvoice()" class="w-full py-3 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-semibold rounded-xl shadow-lg shadow-emerald-900/30 transform active:scale-[0.98] transition flex items-center justify-center space-x-2">
+                        <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z" /></svg>
+                        <span>ইনভয়েস তৈরি করুন</span>
+                    </button>
+                </div>
+            </form>
+        </div>
+
+        <div id="previewGridZone" class="lg:col-span-7 w-full hidden">
+            <div id="mobileSummaryZone" class="w-full mb-6 bg-slate-900 border border-slate-800 p-6 rounded-2xl shadow-xl"></div>
+
+            <div class="invoice-preview-container w-full">
+                <div id="invoiceCaptureArea" class="invoice-print-area p-12 flex flex-col justify-between">
+                    <div class="watermark">বাঁকী</div>
+                    
+                    <div>
+                        <div class="flex justify-between items-start border-b border-slate-700 pb-6">
+                            <div class="flex items-center">
+                                <div>
+                                    <h1 class="text-3xl font-bold tracking-wide text-emerald-400" style="font-family: 'Noto Serif Bengali', sans-serif;">এ আর এগ্রো এন্ড হ্যাচারী</h1>
+                                    <p class="text-xs text-slate-400 mt-1">শেরুয়া হাইস্কুল রোড, শেরপুর, বগুড়া</p>
+                                    <p class="text-xs text-slate-400">মোবাইল: 01612-292789</p>
+                                </div>
+                            </div>
+                            <div class="text-right">
+                                <h2 class="text-3xl font-light text-slate-500 tracking-widest uppercase mb-2">ক্যাশ মেমো</h2>
+                                <div class="text-xs space-y-1 text-slate-400">
+                                    <p><span class="font-semibold text-slate-200">মেমো নম্বর:</span> <span id="lblInvoiceNo">ARAGRO-XXXX</span></p>
+                                    <p><span class="font-semibold text-slate-200">তারিখ:</span> <span id="lblInvoiceDate">DD-MM-YYYY</span></p>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="my-8 bg-slate-800/50 p-4 rounded-xl border border-slate-700/60 grid grid-cols-2 gap-4">
+                            <div>
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">অর্ডারকারীর তথ্য:</h3>
+                                <p id="lblCustName" class="text-base font-semibold text-slate-100">-</p>
+                                <p id="lblCustPhone" class="text-slate-400 mt-0.5">-</p>
+                            </div>
+                            <div>
+                                <h3 class="text-xs font-bold uppercase tracking-wider text-emerald-400 mb-2">ডেলিভেরী ঠিকানা:</h3>
+                                <p id="lblCustAddress" class="text-slate-400 leading-normal">-</p>
+                            </div>
+                        </div>
+
+                        <table class="w-full text-left border-collapse my-6">
+                           <thead>
+                               <tr class="border-b border-slate-700 text-slate-400 text-xs font-semibold uppercase tracking-wider">
+                                   <th class="py-3 pl-2">#</th>
+                                   <th class="py-3">পণ্য বিবরণী</th>
+                                   <th class="py-3 text-right"> পরিমাণ (পিস)</th>
+                                   <th class="py-3 text-right"> প্রতিটির একক মূল্য </th>
+                                   <th class="py-3 text-right pr-2">সর্বমোট মূল্য</th>
+                               </tr>
+                           </thead>
+                           <tbody id="lblProductRows" class="divide-y divide-slate-800 text-slate-300">
+                               <tr>
+                                   <td colspan="5" class="py-8 text-center text-slate-500 italic">কোনো পণ্য যোগ করা হয়নি। ফর্ম পূরণ করে ইনভয়েস প্রিভিউ তৈরি করুন।</td>
+                               </tr>
+                           </tbody>
+                        </table>
+                    </div>
+
+                    <div>
+                        <div class="grid grid-cols-12 gap-4 border-t border-slate-800 pt-6">
+                            <div class="col-span-6 bg-slate-800/40 p-4 rounded-xl border border-slate-700/50 self-start">
+                                <h4 class="text-xs font-bold text-emerald-400 uppercase tracking-wider mb-2">পেমেন্ট তথ্য</h4>
+                                <ul class="text-xs space-y-1.5 text-slate-300">
+                                    <li><span class="font-medium text-slate-400">বিকাশ/নগদ/রকেট (পার্সোনাল/ সেন্ড মানি):</span> <br>01937-866274</li>
+                                    <li><span class="font-medium text-slate-400">বিকাশ (মার্চেন্ট/পেমেন্ট):</span> <br>01612-292789</li>
+                                </ul>
+                                <p class="text-[11px] text-slate-500 mt-4 italic font-medium" style="font-family: 'Noto Serif Bengali', sans-serif;"> বিশেষ দ্রষ্টব্যঃ প্যাকেজিং চার্জ ও কুরিয়ার চার্জ বাঁকী রেখে আমরা কোনও অর্ডার গ্রহণ করিনা। আমাদের সাথে থাকার জন্য আপনাকে আন্তরিক ধন্যবাদ।</p>
+                            </div>
+
+                            <div class="col-span-6 text-right space-y-2 text-xs text-slate-400">
+                                <div class="flex justify-between pl-4">
+                                    <span>মোট ডিম:</span>
+                                    <span id="lblTotalEggs" class="font-semibold text-slate-200">0 পিস</span>
+                                </div>
+                                <div class="flex justify-between pl-4">
+                                    <span>ডিমের মূল্য:</span>
+                                    <span id="lblEggCost" class="font-medium text-slate-200">0 টাকা</span>
+                                </div>
+                                <div class="flex justify-between pl-4">
+                                    <span>প্যাকেজিং চার্জ:</span>
+                                    <span id="lblPackagingCharge" class="font-medium text-slate-200">0 টাকা</span>
+                                </div>
+                                <div class="flex justify-between pl-4">
+                                    <span>কুরিয়ার চার্জ:</span>
+                                    <span id="lblCourierCharge" class="font-medium text-slate-200">0 টাকা</span>
+                                </div>
+                                <div class="flex justify-between border-t border-slate-700 pt-2 pl-4 text-sm font-bold text-slate-300">
+                                    <span>সর্বমোট মূল্য:</span>
+                                    <span id="lblGrandTotal">0 টাকা</span>
+                                </div>
+                                <div class="flex justify-between pl-4 text-emerald-400 font-semibold bg-emerald-500/5 p-1 rounded">
+                                    <span>অগ্রিম পেমেন্ট যোগ্য (প্যাকেজিং + কুরিয়ার):</span>
+                                    <span id="lblAdvanceCost">0 টাকা </span>
+                                </div>
+                                <div class="flex justify-between pl-4 text-amber-400 font-bold bg-amber-500/5 p-1 rounded">
+                                    <span>ক্যাশ অন ডেলিভারি (বাঁকী):</span>
+                                    <span id="lblCodCost">0 টাকা</span>
+                                </div>
+                            </div>
+                        </div>
+
+                        <div class="flex justify-between items-end mt-16 pt-8 border-t border-slate-800">
+                            <div class="text-center w-40">
+                                <div class="border-b border-slate-700 h-8"></div>
+                                <p class="text-xs text-slate-500 mt-2">ক্রেতার স্বাক্ষর</p>
+                            </div>
+                            <div class="text-center w-40">
+                                <div class="border-b border-slate-700 h-8"></div>
+                                <p class="text-xs text-emerald-400 font-medium mt-2">বিক্রেতার স্বাক্ষর</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div id="paymentBoxZone" class="w-full mt-6 bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl no-print hidden">
+                <h3 class="text-sm font-bold text-emerald-400 mb-3 flex items-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12l2 2 4-4m5.618-4.016A11.955 11.955 0 0112 2.944a11.955 11.955 0 01-8.618 3.04A12.02 12.02 0 003 9c0 5.591 3.824 10.29 9 11.622 5.176-1.332 9-6.03 9-11.622 0-1.042-.133-2.052-.382-3.016z" /></svg>
+                    পেমেন্ট ভেরিফিকেশন ও অর্ডার কনফার্মেশন
+                </h3>
+                <p class="text-xs text-slate-400 mb-4">
+                    অনুগ্রহ করে উপরোক্ত <span class="text-emerald-400 font-bold">'অগ্রিম পেমেন্ট যোগ্য'</span> টাকা আমাদের বিকাশ/নগদ/রকেট নম্বরে সেন্ড মানি/ পেমেন্ট করে <span class="text-emerald-400 font-bold">'ট্রানজেকশন আইডি'</span> দিন।
+                </p>
+                
+                <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-4">
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">যে নম্বর থেকে টাকা পাঠিয়েছেন</label>
+                        <input type="text" id="paymentMobile" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="যেমন: 017XXXXXXXX" required>
+                        <p id="paymentMobileError" class="text-red-400 text-xs mt-1 hidden">দয়া করে একটি সঠিক ১১-ডিজিটের বাংলাদেশি মোবাইল নম্বর দিন।</p>
+                    </div>
+                    <div>
+                        <label class="block text-xs font-medium text-slate-400 mb-1">bKash/Nagad/Rocket ট্রানজেকশন আইডি (TrxID)</label>
+                        <input type="text" id="paymentTrxId" class="w-full px-3 py-2 bg-slate-800 border border-slate-700 rounded-lg text-slate-100 placeholder-slate-500 focus:ring-2 focus:ring-emerald-500 focus:outline-none text-sm" placeholder="যেমন: 8N3X9KWP2" required>
+                    </div>
+                </div>
+
+                <button type="button" onclick="confirmOrderToExcel()" id="btnConfirmOrder" class="w-full py-3 bg-gradient-to-r from-teal-600 to-emerald-600 hover:from-teal-500 hover:to-emerald-500 text-white font-semibold rounded-xl shadow-lg shadow-teal-900/30 transition transform active:scale-[0.99] flex items-center justify-center space-x-2">
+                    <span>অর্ডার করুন</span>
+                </button>
+                <p id="submitStatusMessage" class="text-xs text-center mt-2 hidden"></p>
+            </div>
+        </div>
+    </div>
+
+    <div id="successOrderPage" class="max-w-4xl mx-auto hidden mt-4 p-4 flex flex-col items-center">
+        <div class="w-full bg-emerald-950/40 border border-emerald-500/30 p-6 rounded-2xl text-center mb-6 shadow-xl">
+            <div class="inline-flex p-3 bg-emerald-500/20 text-emerald-400 rounded-full mb-3">
+                <svg xmlns="http://www.w3.org/2000/svg" class="h-8 w-8" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M5 13l4 4L19 7" /></svg>
+            </div>
+            <h2 class="text-2xl font-bold text-emerald-400">আপনার অর্ডারটি সফলভাবে গ্রহণ করা হয়েছে!</h2>
+            <p class="text-slate-300 text-sm mt-1">আপনার মেমো/অর্ডার নম্বর: <span id="successMemoId" class="text-amber-400 font-bold underline bg-slate-900 px-2 py-0.5 rounded"></span></p>
+            <p class="text-slate-400 text-xs mt-1">অর্ডার বিবরণী নিচে দেওয়া হলো। আপনি ইনভয়েসটি ডাউনলোড বা প্রিন্ট করে রাখতে পারেন।</p>
+        </div>
+
+            <div id="trackingZone" class="w-full bg-slate-900/90 border border-slate-800 p-6 rounded-2xl shadow-xl mb-6 text-center">
+                <h3 class="text-sm font-bold text-amber-400 mb-2 flex items-center justify-center gap-2">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-5 w-5" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" /><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" /></svg>
+                    কুরিয়ার অবস্থান ট্র্যাক করুন
+                </h3>
+                <p class="text-xs text-slate-400 mb-4">অর্ডারটি কুরিয়ারে বুকিং করার পর আপনার মোবাইল নম্বরে ট্র্যাকিং লিঙ্ক পাঠিয়ে দেওয়া হবে।</p>
+                <button type="button" onclick="window.open('https://tamimiqbalrohim008.github.io/aragro/CurierUpdate.html', '_blank')" class="px-6 py-2 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold rounded-xl text-xs transition shadow-md">
+                    অবস্থান দেখুন
+                </button>
+            </div>
+
+
+        <div id="successSummaryPlaceholder" class="w-full bg-slate-900 rounded-2xl border border-slate-800 p-6 shadow-2xl mb-6"></div>
+
+        <div id="hiddenFullInvoiceArea" style="display:none;"></div>
+
+        <div id="actionButtonsZone" class="w-full max-w-[210mm] mt-4 no-print">
+            <div class="grid grid-cols-2 gap-4 mb-6">
+                <button type="button" onclick="downloadJPG()" class="py-3 px-4 bg-blue-600 hover:bg-blue-500 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center space-x-1">
+                    <span>JPG ইমেজ ডাউনলোড</span>
+                </button>
+                <button type="button" onclick="downloadPDF()" class="py-3 px-4 bg-rose-600 hover:bg-rose-500 text-white font-semibold rounded-xl shadow-lg transition flex items-center justify-center space-x-1">
+                    <span>PDF ডকুমেন্ট ডাউনলোড</span>
+                </button>
+            </div>
+
+
+
+            <div class="grid grid-cols-3 gap-3">
+                <button type="button" onclick="copyInvoiceText()" class="py-2.5 px-3 bg-slate-700 hover:bg-slate-600 text-white font-medium text-sm rounded-xl transition text-center">
+                    টেক্সট হিসেবে কপি করুন
+                </button>
+                <button type="button" onclick="shareInvoice()" class="py-2.5 px-3 bg-indigo-600 hover:bg-indigo-500 text-white font-medium text-sm rounded-xl transition text-center">
+                    শেয়ার করুন
+                </button>
+                <button type="button" onclick="triggerPrint()" class="py-2.5 px-3 bg-amber-600 hover:bg-amber-500 text-white font-medium text-sm rounded-xl transition text-center">
+                    প্রিন্ট করুন
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        const GOOGLE_WEB_APP_URL = "https://script.google.com/macros/s/AKfycbyzi1C5E20le9of-rSkJvCJhYhLg8HXfjR1OdAhLV-XKTKxgyBlXAtsQRxN0BC-SJUsXQ/exec";
+
+        const bdGeoDatabase = {
+            "বগুড়া": ["বগুড়া সদর", "শেরপুর", "শাজাহানপুর", "কাহালু", "নন্দীগ্রাম", "ধুনট", "গাবতলী", "সারিয়াকান্দি", "সোনাতলা", "শিবগঞ্জ", "আদমদিঘী", "দুপচাঁচিয়া"],
+            "ঢাকা": ["ঢাকা সদর", "সাভার", "ধামরাই", "কেরানীগঞ্জ", "নবাবগঞ্জ", "দোহার"],
+            "গাজীপুর": ["গাজীপুর সদর", "কালিয়াকৈর", "কালীগঞ্জ", "কপাসিয়া", "শ্রীপুর"],
+            "নারায়ণগঞ্জ": ["নারায়ণগঞ্জ সদর", "আড়াইহাজার", "বন্দর", "রূপগঞ্জ", "সোনারগাঁও"],
+            "টাঙ্গাইল": ["টাঙ্গাইল সদর", "বাসাইল", "ভূঞাপুর", "দেলদয়ার", "ঘাটাইল", "গোপালপুর", "মধুপুর", "মির্জাপুর", "নাগরপুর", "সখিপুর", "ধনবাড়ী", "কালিহাতী"],
+            "ফরিদপুর": ["ফরিদপুর সদর", "বোয়ালমারী", "আলফাডাঙ্গা", "মধুখালী", "ভাঙ্গা", "নগরকান্দা", "সালथा", "সদরপুর", "চরভদ্রাসন"],
+            "মানিকগঞ্জ": ["মানিকগঞ্জ সদর", "সিঙ্গাইর", "শিবালয়", "সাটুরিয়া", "হরিরামপুর", "ঘিওর", "দৌলতপুর"],
+            "মুন্সিগঞ্জ": ["মুন্সিগঞ্জ সদর", "টংগিবাড়ী", "শ্রীনগর", "লৌহজং", "গজারিয়া", "সিরাজদিখান"],
+            "নরসিংদী": ["নরসিংদী সদর", "বেলাবো", "মনোহরদী", "পলাশ", "রায়পুরা", "শিবপুর"],
+            "গোপালগঞ্জ": ["গোপালগঞ্জ সদর", "কাশিয়ানী", "কোটালীপাড়া", "মুকসুদপুর", "টুঙ্গিপাড়া"],
+            "মাদারীপুর": ["মাদারীপুর সদর", "কালকিনি", "রাজৈর", "শিবচর", "ডাসার"],
+            "রাজবাড়ী": ["রাজবাড়ী সদর", "বালিয়াকান্দি", "গোয়ালন্দ", "পাংশা", "কালুখালী"],
+            "শরীয়তপুর": ["শরীয়তপুর সদর", "ডামুড্যা", "নড়িয়া", "জাজিরা", "ভেদরগঞ্জ", "গোসাইরহাট"],
+            "কিশোরগঞ্জ": ["কিশোরগঞ্জ সদর", "হোসেনপুর", "করিমগঞ্জ", "তাড়াইল", "বাজিতপুর", "কুলিয়ারচর", "ভৈরব", "নিকলী", "ইটনা", "মিঠামইন", "অষ্টগ্রাম", "পাকুন্দিয়া", "কটিয়াদী"],
+            "জয়পুরহাট": ["জয়পুরহাট সদর", "আক্কেলপুর", "কালাই", "ক্ষেতলাল", "পাঁচবিবি"],
+            "নওগাঁ": ["নওগাঁ সদর", "আত্রাই", "বদলগাছী", "ধামইরহাট", "মান্দา", "মহাদেবপুর", "নিয়ামতপুর", "পত্নীতলা", "পোরশা", "সাপাহার", "রানীনগর"],
+            "নাটোর": ["নাটোর সদর", "বড়াইগ্রাম", "বাগাতিপাড়া", "লালপুর", "গুরুদাসপুর", "সিংড়া", "নলডাঙ্গা"],
+            "চাঁপাইনবাবগঞ্জ": ["চাঁপাইনবাবগঞ্জ সদর", "ভোলাহাট", "গোমস্তাপুর", "নাচোল", "শিবগঞ্জ"],
+            "পাবনা": ["পাবনা সদর", "আটঘরিয়া", "বেড়া", "ভাঙ্গুড়া", "চাটমোহর", "ফরিদপুর", "ঈশ্বরদী", "সাঁথিয়া", "সুজানগর"],
+            "রাজশাহী": ["বোয়ালিয়া", "মতিহার", "রাজপাড়া", "শাহমখদুম", "বাঘা", "বাগমারা", "চারঘাট", "দুর্গাপুর", "গোদাগাড়ী", "মোহনপুর", "পবা", "পুঠিয়া", "তানোর"],
+            "সিরাজগঞ্জ": ["সিরাজগঞ্জ সদর", "বেলকুচি", "চৌহালী", "কামারখন্দ", "কাজীপুর", "রায়গঞ্জ", "শাহজাদপুর", "তাড়াশ", "উল্লাপাড়া"],
+            "দিনাজপুর": ["দিনাজপুর সদর", "বীরগঞ্জ", "বিরল", "বোচাগঞ্জ", "চিরিরবন্দর", "ফুলবাড়ী", "ঘোড়াঘাট", "হাকিমপুর", "কাহারোল", "খানসামা", "নবাবগঞ্জ", "পার্বতীপুর"],
+            "গাইবান্ধা": ["গাইবান্ধা সদর", "সাদুল্লাপুর", "পলাশবাড়ী", "গোবিন্দগঞ্জ", "সুন্দরগঞ্জ", "সাঘাটা", "ফুলছড়ি"],
+            "কুড়িগ্রাম": ["কুড়িগ্রাম সদর", "নাগেশ্বরী", "ভুরুঙ্গামারী", "ফুলবাড়ী", "রাজারহাট", "উলিপুর", "চিলমারী", "রৌমারী", "চর রাজিবপুর"],
+            "লালমনিরহাট": ["লালমনিরহাট সদর", "পাটগ্রাম", "হাতীবান্ধা", "কালীগঞ্জ", "আদিতমারী"],
+            "নীলফামারী": ["নীলফামারী সদর", "সৈয়দপুর", "জলঢাকা", "কিশোরগঞ্জ", "ডোমার", "ডিমলা"],
+            "পঞ্চগড়": ["পঞ্চগড় সদর", "বোদা", "দেবীগঞ্জ", "আটোয়ারী", "তেঁতুলিয়া"],
+            "রংপুর": ["রংপুর সদর", "বদরগঞ্জ", "মিঠাপুকুর", "পীরগাছা", "পীরগঞ্জ", "কাউনিয়া", "তারাগঞ্জ", "গংগাচড়া"],
+            "ঠাকুরগাঁও": ["ঠাকুরগাঁও সদর", "পীরগঞ্জ", "রাণীশংকৈল", "হরিপুর", "বালিয়াডাঙ্গী"],
+            "বরগুনা": ["বরগুনা সদর", "আমতলী", "পাথরঘাটা", "বেতাগী", "বামনা", "তালতলী"],
+            "বরিশাল": ["বরিশাল সদর", "বাকেরগঞ্জ", "বাবুগঞ্জ", "উজিরপুর", "বানারীপাড়া", "গৌরনদী", "আগৈলঝঝড়া", "মেহেন্দিগঞ্জ", "মুলাদী", "হিজলা"],
+            "ভোলা": ["ভোলা সদর", "বুরহানউদ্দিন", "চরফ্যাশন", "দৌলতখান", "লালমোহন", "মনপুরা", "তজুমদ্দিন"],
+            "ঝালকাঠি": ["ঝালকাঠি সদর", "কাঠালিয়া", "নলছিটি", "রাজাপুর"],
+            "পটুয়াখালী": ["পটুয়াখালী সদর", "বাউফল", "গлаচিপা", "দশমিনা", "কলাপাড়া", "মির্জাগঞ্জ", "দুমকী", "রাঙ্গাবালী"],
+            "পিরোজপুর": ["পিরোজপুর সদর", "ভান্ডারিয়া", "মঠবাড়ীয়া", "নাজিরপুর", "নেছারাবাদ", "কাউখালী", "জিয়ানগর"],
+            "বান্দরবান": ["বান্দরবান সদর", "আলীকদম", "লামা", "নাইক্ষ্যংছড়ি", "রোয়াংছড়ি", "রুমা", "থানচি"],
+            "ব্রাহ্মণবাড়ীয়া": ["ব্রাহ্মণবাড়ীয়া সদর", "আশুগঞ্জ", "নাসিরনগর", "নবীনগর", "সরাইল", "কসবা", "আখাউড়া", "বাঞ্ছারামপুর", "বিজয়নগর"],
+            "চাঁদপুর": ["চাঁদপুর সদর", "হাজীগঞ্জ", "কচুয়া", "ফরিদগঞ্জ", "মতলব উত্তর", "মতলব দক্ষিণ", "হাইমচর", "শাহরাস্তি"],
+            "চট্টগ্রাম": ["চট্টগ্রাম সদর", "আনোয়ারা", "বাঁশখালী", "বোয়ালখালী", "চন্দনাইশ", "ফটিকছড়ি", "হাটহাজারী", "লোহাগাড়া", "মীরসরাই", "পটিয়া", "রাঙ্গুনিয়া", "রাউজান", "সন্দ্বীপ", "সাতকানিয়া", "সীতাকুণ্ড"],
+            "কুমিল্লা": ["কুমিল্লা সদর", "بড়ুড়া", "ব্রাহ্মণপাড়া", "বুড়িচং", "চান্দিনা", "চৌদ্দগ্রাম", "দাউদকান্দি", "দেবিদ্বার", "হোমনা", "লাকসাম", "মুরাদনগর", "নাঙ্গলকোট", "তিতাস", "মেঘনা", "মনোহরগঞ্জ", "সদর দক্ষিণ"],
+            "কক্সবাজার": ["কক্সবাজার সদর", "চকরিয়া", "কুতুবদিয়া", "মহেশখালী", "রামু", "টেকনাফ", "উখিয়া", "পেকুয়া"],
+            "ফেনী": ["ফেনী সদর", "ছাগলনাইয়া", "দাগনভূঞা", "পরশুরাম", "সোনাগাজী", "ফুলগাজী"],
+            "খাগড়াছড়ি": ["খাগড়াছড়ি সদর", "দীঘিনালা", "লক্ষ্মীছড়ি", "মহালছড়ি", "মানিকছড়ি", "মাটিরাঙ্গা", "পানছড়ি", "রামগড়"],
+            "লক্ষ্মীপুর": ["লক্ষ্মীপুর সদর", "রায়পুর", "রামগঞ্জ", "রামগতি", "কমলনগর"],
+            "নোয়াখালী": ["নোয়াখালী সদর", "বেগমগঞ্জ", "চাটখিল", "কোম্পানীগঞ্জ", "হাতিয়া", "সেনবাগ", "সোনাইমুড়ী", "সুবর্ণচর", "কবিরহাট"],
+            "রাঙ্গামাটি": ["রাঙ্গামাটি সদর", "বিলাইছড়ি", "বাঘাইছড়ি", "বরকল", "জুরাছড়ি", "লংগদু", "নানিয়ারচর", "রাজস্থলী", "কাপ্তাই", "কাউখালী"],
+            "বাগেরহাট": ["বাগেরহাট সদর", "চিতলমারী", "ফকিরহাট", "কচুয়া", "মোল্লাহাট", "মোংলা", "মোড়েলগঞ্জ", "রামপাল", "শরণখোলা"],
+            "চুয়াডাঙ্গা": ["চুয়াডাঙ্গা সদর", "আলমডাঙ্গা", "দামুড়হুদা", "জীবননগর"],
+            "যশোর": ["যশোর সদর", "অভয়নগর", "বাঘারপাড়া", "চৌগাছা", "ঝিকরগাছা", "কেশবপুর", "মণিরামপুর", "শার্শা"],
+            "ঝিনাইদহ": ["ঝিনাইদহ সদর", "হরিণাকুণ্ডু", "কালীগঞ্জ", "কোটচাঁদপুর", "মহেশপুর", "শৈলকুপা"],
+            "খুলনা": ["খুলনা সদর", "বটিয়াঘাটা", "দাকোপ", "ডুমুরিয়া", "দিঘলিয়া", "কয়রা", "পাইকগাছা", "ফুলতলা", "রূপসা"],
+            "কুষ্টিয়া": ["কুষ্টিয়া সদর", "কুমারখালী", "দৌলতপুর", "মিরপুর", "ভেড়ামারা", "খোকসা"],
+            "মাগুরা": ["মাগুরা সদর", "মহম্মদপুর", "শালিখা", "শ্রীপুর"],
+            "মেহেরপুর": ["মেহেরপুর সদর", "গাংনী", "মুজিবনগর"],
+            "নড়াইল": ["নড়াইল সদর", "লোহাগড়া", "কালিয়া"],
+            "সাতক্ষীরা": ["সাতক্ষীরা সদর", "আশাশুনি", "দেবহাটা", "কলারোয়া", "কালীগঞ্জ", "শ্যামনগর", "তালা"],
+            "হবিগঞ্জ": ["হবিগঞ্জ সদর", "বাহুবল", "মাধবপুর", "চুনারুঘাট", "লাখাই", "নবীগঞ্জ", "আজমিরীগঞ্জ", "বানিয়াচং"],
+            "মৌলভীবাজার": ["মৌলভীবাজার সদর", "বড়লেখা", "জুড়ী", "কমলগঞ্জ", "কুলাউড়া", "রাজনগর", "শ্রীমঙ্গল"],
+            "সুনামগঞ্জ": ["সুনামগঞ্জ সদর", "দক্ষিণ সুনামগঞ্জ", "বিশ্বম্ভরপুর", "ছাতক", "দিরাই", "ধর্মপাশা", "দোয়ারাবাজার", "জগন্নাথপুর", "জামালগঞ্জ", "শাল্লা", "তাহিরপুর"],
+            "সিলেট": ["সিলেট সদর", "বালাগঞ্জ", "বিয়ানীবাজার", "বিশ্বনাথ", "কোম্পানীগঞ্জ", "ফেঞ্চুগঞ্জ", "গোলাপগঞ্জ", "গোয়াইনঘাট", "জৈন্তাপুর", "কানাইঘাট", "জকিগঞ্জ", "দক্ষিণ সুরমা"],
+            "জামালপুর": ["জামালপুর সদর", "বকশীগঞ্জ", "দেওয়ানগঞ্জ", "ইসলামপুর", "মাদারগঞ্জ", "মেলান্দহ", "সরিষাবাড়ী"],
+            "ময়মনসিংহ": ["ময়মনসিংহ সদর", "ভালুকা", "গৌরীপুর", "হালুয়াঘাট", "ইশ্বরগঞ্জ", "মুক্তাগাছা", "নান্দাইল", "ফুলপুর", "ফুলবাড়ী", "ত্রিশাল", "ধোবাউড়া", "তারাকান্দা"],
+            "নেত্রকোনা": ["নেত্রকোনা সদর", "আটপাড়া", "বারহাট্টা", "দুর্গাপুর", "খালিয়াজুরী", "কলমাকান্দা", "কেন্দুয়া", "মদন", "মোহনগঞ্জ", "পূর্বধলা"],
+            "শেরপুর": ["শেরপুর সদর", "নালিতাবাড়ী", "শ্রীবরদী", "নকলা", "ঝিনাইগাতী"]
+        };
+
+        const eggTypes = ["ইউরোপীয়ান কোয়েলের বীজ ডিম", "কিং কোয়েলের বীজ ডিম"];
+
+        const packagingMatrix = [
+            {min: 0, max: 10, cost: 15}, {min: 11, max: 20, cost: 25}, {min: 21, max: 30, cost: 40},
+            {min: 31, max: 50, cost: 80}, {min: 51, max: 70, cost: 120}, {min: 71, max: 120, cost: 155}
+        ];
+        
+        const courierMatrix = [
+            {min: 0, max: 30, cost: 115}, {min: 31, max: 50, cost: 135},
+            {min: 51, max: 70, cost: 155}, {min: 71, max: 120, cost: 175}
+        ];
+
+        let currentInvoiceData = {};
+
+        function processBlockRecurse(qty, rules) {
+            if (qty <= 0) return 0;
+            for(let i=0; i<rules.length; i++) {
+                if (qty >= rules[i].min && qty <= rules[i].max) {
+                    return rules[i].cost;
+                }
+            }
+            return 175 + processBlockRecurse(qty - 120, rules); 
+        }
+
+        function computePackagingCost(totalEggs) {
+            if(totalEggs <= 120) return processBlockRecurse(totalEggs, packagingMatrix);
+            return 155 + computePackagingCost(totalEggs - 120);
+        }
+
+        function computeCourierCost(totalEggs) {
+            if(totalEggs <= 120) return processBlockRecurse(totalEggs, courierMatrix);
+            return 175 + computeCourierCost(totalEggs - 120);
+        }
+
+        document.addEventListener("DOMContentLoaded", () => {
+            initializeGeographicalDropdowns();
+            addProductRow();
+            stampCurrentDate();
+        });
+
+        function stampCurrentDate() {
+            const today = new Date();
+            const dd = String(today.getDate()).padStart(2, '0');
+            const mm = String(today.getMonth() + 1).padStart(2, '0'); 
+            const yyyy = today.getFullYear();
+            document.getElementById('lblInvoiceDate').innerText = `${dd}-${mm}-${yyyy}`;
+        }
+
+        function initializeGeographicalDropdowns() {
+            const distSelect = document.getElementById('custDistrict');
+            const sortedDistricts = Object.keys(bdGeoDatabase).sort();
+            
+            sortedDistricts.forEach(district => {
+                let opt = document.createElement('option');
+                opt.value = district;
+                opt.textContent = district;
+                distSelect.appendChild(opt);
+            });
+
+            distSelect.addEventListener('change', function() {
+                const upazilaSelect = document.getElementById('custUpazila');
+                upazilaSelect.innerHTML = '<option value="">উপজেলা নির্বাচন করুন</option>';
+                
+                if(this.value && bdGeoDatabase[this.value]) {
+                    upazilaSelect.disabled = false;
+                    bdGeoDatabase[this.value].sort().forEach(upazila => {
+                        let opt = document.createElement('option');
+                        opt.value = upazila;
+                        opt.textContent = upazila;
+                        upazilaSelect.appendChild(opt);
+                    });
+                } else {
+                    upazilaSelect.disabled = true;
+                }
+            });
+        }
+
+        function addProductRow() {
+            const container = document.getElementById('productContainer');
+            const rowCount = container.children.length;
+            
+            let defaultProduct = eggTypes[0];
+            if (rowCount > 0) {
+                const absoluteFirstRowSelect = container.children[0].querySelector('.product-type-select');
+                if (absoluteFirstRowSelect && absoluteFirstRowSelect.value === eggTypes[0]) {
+                    defaultProduct = eggTypes[1];
+                }
+            }
+
+            const wrapper = document.createElement('div');
+            wrapper.className = "flex items-center space-x-2 bg-slate-800 p-2 rounded-xl border border-slate-700 dynamic-prod-row";
+            wrapper.innerHTML = `
+                <select class="product-type-select flex-1 px-2 py-1.5 bg-slate-900 border border-slate-700 text-slate-200 rounded-md focus:outline-none text-xs" required>
+                    <option value="${eggTypes[0]}" ${defaultProduct === eggTypes[0] ? 'selected' : ''}>${eggTypes[0]}</option>
+                    <option value="${eggTypes[1]}" ${defaultProduct === eggTypes[1] ? 'selected' : ''}>${eggTypes[1]}</option>
+                </select>
+                <input type="number" class="product-qty-input w-20 px-2 py-1.5 bg-slate-900 border border-slate-700 text-slate-200 rounded-md focus:outline-none text-xs text-center" placeholder="Qty" min="1" value="10" required>
+                <button type="button" onclick="removeProductRow(this)" class="p-1.5 bg-rose-950/50 hover:bg-rose-900/50 text-rose-400 rounded-md transition">
+                    <svg xmlns="http://www.w3.org/2000/svg" class="h-4 w-4" fill="none" viewBox="0 0 24 24" stroke="currentColor"><path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-16v6m-4-6h4" /></svg>
+                </button>
+            `;
+            container.appendChild(wrapper);
+        }
+
+        function removeProductRow(btn) {
+            const container = document.getElementById('productContainer');
+            if(container.children.length > 1) {
+                btn.closest('.dynamic-prod-row').remove();
+            } else {
+                alert("কমপক্ষে একটি পণ্যের তথ্য থাকতে হবে।");
+            }
+        }
+
+        // ইনভয়েস সামারি টেক্সট তৈরির ফাংশন (যা মোবাইল এবং সফল পেজে শো করবে)
+        function generateSummaryHTML(invNo, name, mobile, address, totalEggs, totalCost, advance, cod) {
+            return `
+                <h3 class="text-sm font-bold text-emerald-400 border-b border-slate-800 pb-2 mb-3">📦 অর্ডার বিবরণী (Summary)</h3>
+                <div class="space-y-2 text-xs text-slate-300">
+                    <p><span class="text-slate-400">মেমো নম্বর:</span> <span class="text-white font-semibold">${invNo}</span></p>
+                    <p><span class="text-slate-400">নাম:</span> <span class="text-white font-medium">${name}</span></p>
+                    <p><span class="text-slate-400">মোবাইল:</span> <span class="text-white font-medium">${mobile}</span></p>
+                    <p><span class="text-slate-400">ঠিকানা:</span> <span class="text-white font-medium">${address}</span></p>
+                    <hr class="border-slate-800 my-2">
+                    <div class="flex justify-between"><span>মোট ডিম:</span> <span class="text-white font-bold">${totalEggs} পিস</span></div>
+                    <div class="flex justify-between"><span>সর্বমোট মূল্য:</span> <span class="text-white font-bold">${totalCost} টাকা</span></div>
+                    <div class="flex justify-between text-emerald-400"><span>অগ্রিম পরিশোধযোগ্য:</span> <span class="font-bold">${advance} টাকা</span></div>
+                    <div class="flex justify-between text-amber-400"><span>ক্যাশ অন ডেলিভারি (বাকি):</span> <span class="font-bold">${cod} টাকা</span></div>
+                </div>
+            `;
+        }
+
+        function generateInvoice() {
+            const mobileInput = document.getElementById('custMobile').value.trim();
+            const bdMobilePattern = /^01[3-9]\d{8}$/;
+            
+            if(!bdMobilePattern.test(mobileInput)) {
+                document.getElementById('mobileError').classList.remove('hidden');
+                document.getElementById('custMobile').focus();
+                return;
+            } else {
+                document.getElementById('mobileError').classList.add('hidden');
+            }
+
+            if(!document.getElementById('invoiceForm').checkValidity()) {
+                alert('অনুগ্রহ করে ফর্মের সব তথ্য সঠিকভাবে পূরণ করুন।');
+                return;
+            }
+
+            const randomSuffix = Math.floor(1000 + Math.random() * 9000);
+            const generatedInvNo = `ARAGRO-${randomSuffix}`;
+            document.getElementById('lblInvoiceNo').innerText = generatedInvNo;
+
+            const name = document.getElementById('custName').value;
+            const fullAddress = `${document.getElementById('custVillage').value}, ${document.getElementById('custUpazila').value}, ${document.getElementById('custDistrict').value}`;
+
+            document.getElementById('lblCustName').innerText = name;
+            document.getElementById('lblCustPhone').innerText = mobileInput;
+            document.getElementById('lblCustAddress').innerText = fullAddress;
+
+            const rows = document.querySelectorAll('.dynamic-prod-row');
+            const tbody = document.getElementById('lblProductRows');
+            tbody.innerHTML = '';
+            
+            let accumulatedEggsSum = 0;
+            let europeanQty = 0;
+            let kingQty = 0;
+
+            rows.forEach((row, index) => {
+                const type = row.querySelector('.product-type-select').value;
+                const qty = parseInt(row.querySelector('.product-qty-input').value) || 0;
+                accumulatedEggsSum += qty;
+
+                if (type === eggTypes[0]) {
+                    europeanQty += qty;
+                } else if (type === eggTypes[1]) {
+                    kingQty += qty;
+                }
+
+                const lineCost = qty * 25;
+
+                const tableRow = document.createElement('tr');
+                tableRow.className = "border-b border-slate-800/60 hover:bg-slate-800/30 transition";
+                tableRow.innerHTML = `
+                    <td class="py-3 pl-2 text-slate-500 font-medium">${index + 1}</td>
+                    <td class="py-3 font-medium text-slate-200">${type}</td>
+                    <td class="py-3 text-right font-semibold text-slate-100">${qty} পিস</td>
+                    <td class="py-3 text-right text-slate-400">25 টাকা</td>
+                    <td class="py-3 text-right pr-2 font-semibold text-slate-100">${lineCost.toFixed(2)} টাকা</td>
+                `;
+                tbody.appendChild(tableRow);
+            });
+
+            const calculatedEggCost = accumulatedEggsSum * 25;
+            const calculatedPkgCost = computePackagingCost(accumulatedEggsSum);
+            const calculatedCourierCost = computeCourierCost(accumulatedEggsSum);
+            const absoluteGrandTotal = calculatedEggCost + calculatedPkgCost + calculatedCourierCost;
+            
+            const advanceTotal = calculatedPkgCost + calculatedCourierCost;
+            const codTotal = calculatedEggCost;
+
+            document.getElementById('lblTotalEggs').innerText = `${accumulatedEggsSum} পিস`;
+            document.getElementById('lblEggCost').innerText = `${calculatedEggCost.toFixed(0)} টাকা`;
+            document.getElementById('lblPackagingCharge').innerText = `${calculatedPkgCost.toFixed(0)} টাকা`;
+            document.getElementById('lblCourierCharge').innerText = `${calculatedCourierCost.toFixed(0)} টাকা`;
+            document.getElementById('lblGrandTotal').innerText = `${absoluteGrandTotal.toFixed(0)} টাকা`;
+            document.getElementById('lblAdvanceCost').innerText = `${advanceTotal.toFixed(0)} টাকা`;
+            document.getElementById('lblCodCost').innerText = `${codTotal.toFixed(0)} টাকা`;
+
+            currentInvoiceData = {
+                invoiceNo: generatedInvNo,
+                custName: name,
+                custMobile: mobileInput,
+                custAddress: fullAddress,
+                europeanQty: europeanQty,
+                kingQty: kingQty,
+                totalEggs: accumulatedEggsSum,
+                grandTotal: absoluteGrandTotal.toFixed(0),
+                advanceAmount: advanceTotal.toFixed(0),
+                codAmount: codTotal.toFixed(0)
+            };
+
+            // মোবাইল ভিউ সামারি সেট করা
+            const summaryHTML = generateSummaryHTML(generatedInvNo, name, mobileInput, fullAddress, accumulatedEggsSum, absoluteGrandTotal.toFixed(0), advanceTotal.toFixed(0), codTotal.toFixed(0));
+            document.getElementById('mobileSummaryZone').innerHTML = summaryHTML;
+
+            document.getElementById('previewGridZone').classList.remove('hidden');
+            document.getElementById('paymentBoxZone').classList.remove('hidden');
+            
+            document.getElementById('paymentBoxZone').scrollIntoView({ behavior: 'smooth' });
+        }
+
+        function confirmOrderToExcel() {
+            if (!GOOGLE_WEB_APP_URL || GOOGLE_WEB_APP_URL === "YOUR_WEB_APP_URL_HERE") {
+                alert("দয়া করে ডেপ্লয়মেন্টের পর প্রাপ্ত সঠিক Google Web App URL টি কোডে যুক্ত করুন।");
+                return;
+            }
+
+            const senderMobile = document.getElementById('paymentMobile').value.trim();
+            const transactionId = document.getElementById('paymentTrxId').value.trim();
+            const statusMsg = document.getElementById('submitStatusMessage');
+            const confirmBtn = document.getElementById('btnConfirmOrder');
+            const mobileError = document.getElementById('paymentMobileError');
+
+            const bdMobilePattern = /^01[3-9]\d{8}$/;
+            if(!bdMobilePattern.test(senderMobile)) {
+                mobileError.classList.remove('hidden');
+                document.getElementById('paymentMobile').focus();
+                return;
+            } else {
+                mobileError.classList.add('hidden');
+            }
+
+            if (!senderMobile || !transactionId) {
+                alert("অনুগ্রহ করে পেমেন্ট নম্বর এবং ট্রানজেকশন আইডি প্রদান করুন।");
+                return;
+            }
+
+            statusMsg.classList.remove('hidden', 'text-red-400', 'text-green-400');
+            statusMsg.classList.add('text-slate-300');
+            statusMsg.innerText = "অর্ডার প্রসেস হচ্ছে... অনুগ্রহ করে অপেক্ষা করুন।";
+            confirmBtn.disabled = true;
+
+            const localDate = new Date();
+            const utcTime = localDate.getTime() + (localDate.getTimezoneOffset() * 60000);
+            const dhakaOffset = 6; 
+            const dhakaDate = new Date(utcTime + (3600000 * dhakaOffset));
+            
+            const orderTimeStr = dhakaDate.getFullYear() + '-' +
+                String(dhakaDate.getMonth() + 1).padStart(2, '0') + '-' +
+                String(dhakaDate.getDate()).padStart(2, '0') + ' ' +
+                String(dhakaDate.getHours()).padStart(2, '0') + ':' +
+                String(dhakaDate.getMinutes()).padStart(2, '0') + ':' +
+                String(dhakaDate.getSeconds()).padStart(2, '0');
+
+            const formData = new FormData();
+            formData.append('invoiceNo', currentInvoiceData.invoiceNo);
+            formData.append('custName', currentInvoiceData.custName);
+            formData.append('custMobile', currentInvoiceData.custMobile);
+            formData.append('custAddress', currentInvoiceData.custAddress);
+            formData.append('europeanQty', currentInvoiceData.europeanQty);
+            formData.append('kingQty', currentInvoiceData.kingQty);
+            formData.append('totalEggs', currentInvoiceData.totalEggs);
+            formData.append('grandTotal', currentInvoiceData.grandTotal);
+            formData.append('advanceAmount', currentInvoiceData.advanceAmount);
+            formData.append('codAmount', currentInvoiceData.codAmount);
+            formData.append('senderMobile', senderMobile);
+            formData.append('transactionId', transactionId);
+            formData.append('orderTime', orderTimeStr);
+
+            fetch(GOOGLE_WEB_APP_URL, {
+                method: 'POST',
+                body: formData
+            })
+            .then(response => response.json())
+            .then(data => {
+                if (data.result === "success") {
+                    document.getElementById('successMemoId').innerText = currentInvoiceData.invoiceNo;
+                    
+                    document.getElementById('mainDashboard').classList.add('hidden');
+                    document.getElementById('successOrderPage').classList.remove('hidden');
+                    
+                    // সফল পেজে ইনভয়েস টেবিল না দেখিয়ে শুধু সামারি রেন্ডার করা
+                    const finalSummaryHTML = generateSummaryHTML(
+                        currentInvoiceData.invoiceNo, 
+                        currentInvoiceData.custName, 
+                        currentInvoiceData.custMobile, 
+                        currentInvoiceData.custAddress, 
+                        currentInvoiceData.totalEggs, 
+                        currentInvoiceData.grandTotal, 
+                        currentInvoiceData.advanceAmount, 
+                        currentInvoiceData.codAmount
+                    );
+                    document.getElementById('successSummaryPlaceholder').innerHTML = finalSummaryHTML;
+                    
+                    // ব্যাকগ্রাউন্ডে পিডিএফ/জেপিজি ডাউনলোডের জন্য আসল এলিমেন্টটি হিডেন ট্র্যাশে রেখে দেওয়া হলো
+                    const invoiceArea = document.getElementById('invoiceCaptureArea');
+                    document.getElementById('hiddenFullInvoiceArea').appendChild(invoiceArea);
+                    
+                    // রিসেট
+                    document.getElementById('invoiceForm').reset();
+                    document.getElementById('paymentMobile').value = '';
+                    document.getElementById('paymentTrxId').value = '';
+                    document.getElementById('previewGridZone').classList.add('hidden');
+                    document.getElementById('paymentBoxZone').classList.add('hidden');
+                    
+                    window.scrollTo({ top: 0, behavior: 'smooth' });
+                } else {
+                    throw new Error(data.error);
+                }
+            })
+            .catch(error => {
+                statusMsg.classList.remove('text-slate-300');
+                statusMsg.classList.add('text-red-400');
+                statusMsg.innerText = "দুঃখিত! অর্ডার গ্রহন করা সম্ভব হয়নি। আবার চেষ্টা করুন।";
+                console.error(error);
+            })
+            .finally(() => {
+                confirmBtn.disabled = false;
+            });
+        }
+
+        function executeHighResCapture(callback) {
+            // হিডেন ট্র্যাশ থেকে আসল ইনভয়েস নোডটি সিলেক্ট করা হচ্ছে যাতে ডাউনলোড ঠিক থাকে
+            const originElement = document.getElementById('hiddenFullInvoiceArea').firstElementChild || document.getElementById('invoiceCaptureArea');
+            originElement.classList.add('export-light-mode');
+            
+            const offscreenContainer = document.createElement('div');
+            offscreenContainer.style.position = 'absolute';
+            offscreenContainer.style.left = '-9999px';
+            offscreenContainer.style.top = '-9999px';
+            offscreenContainer.style.width = '210mm';
+            document.body.appendChild(offscreenContainer);
+            
+            const replicaClone = originElement.cloneNode(true);
+            replicaClone.style.transform = 'none';
+            replicaClone.style.position = 'static';
+            offscreenContainer.appendChild(replicaClone);
+            
+            html2canvas(replicaClone, {
+                scale: 2,
+                useCORS: true,
+                width: replicaClone.offsetWidth,
+                height: replicaClone.offsetHeight
+            }).then(canvas => {
+                originElement.classList.remove('export-light-mode');
+                document.body.removeChild(offscreenContainer);
+                callback(canvas);
+            });
+        }
+
+        function downloadJPG() {
+            executeHighResCapture(canvas => {
+                const link = document.createElement('a');
+                link.download = `${currentInvoiceData.invoiceNo || 'invoice'}.jpg`;
+                link.href = canvas.toDataURL('image/jpeg', 0.9);
+                link.click();
+            });
+        }
+
+        function downloadPDF() {
+            const { jsPDF } = window.jspdf;
+            executeHighResCapture(canvas => {
+                const imgData = canvas.toDataURL('image/jpeg', 1.0);
+                const pdf = new jsPDF('p', 'mm', 'a4');
+                const imgWidth = 210; 
+                const imgHeight = (canvas.height * imgWidth) / canvas.width;
+                
+                pdf.addImage(imgData, 'JPEG', 0, 0, imgWidth, imgHeight);
+                pdf.save(`${currentInvoiceData.invoiceNo || 'invoice'}.pdf`);
+            });
+        }
+
+        function triggerPrint() {
+            const currentPreviewElement = document.getElementById('hiddenFullInvoiceArea').firstElementChild || document.getElementById('invoiceCaptureArea');
+            const printContainer = document.getElementById('printDualContainer');
+            
+            printContainer.innerHTML = '';
+            
+            const leftInvoiceClone = currentPreviewElement.cloneNode(true);
+            leftInvoiceClone.id = "leftPrintInvoice";
+            leftInvoiceClone.className = "print-half-invoice";
+            leftInvoiceClone.style.transform = "none";
+            
+            const rightInvoiceClone = currentPreviewElement.cloneNode(true);
+            rightInvoiceClone.id = "rightPrintInvoice";
+            rightInvoiceClone.className = "print-half-invoice";
+            rightInvoiceClone.style.transform = "none";
+            
+            printContainer.appendChild(leftInvoiceClone);
+            printContainer.appendChild(rightInvoiceClone);
+            
+            window.print();
+        }
+
+        function copyInvoiceText() {
+            const rawText = `এ আর এগ্রো এন্ড হ্যাচারী\nমেমো নম্বর: ${currentInvoiceData.invoiceNo}\n\nঅর্ডারকারী:\nনাম: ${currentInvoiceData.custName}\nমোবাইল: ${currentInvoiceData.custMobile}\nঠিকানা: ${currentInvoiceData.custAddress}\n\nমোট ডিম: ${currentInvoiceData.totalEggs} পিস\nসর্বমোট মূল্য: ${currentInvoiceData.grandTotal} টাকা\nঅগ্রিম পেমেন্ট যোগ্য: ${currentInvoiceData.advanceAmount} টাকা\nক্যাশ অন ডেলিভারি (বাঁকী): ${currentInvoiceData.codAmount} টাকা\n\nविशेष দ্রষ্টব্যঃ প্যাকেজিং চার্জ ও কুরিয়ার চার্জ বাঁকী রেখে আমরা কোনও অর্ডার গ্রহণ করিনা।\n\nবিকাশ/নগদ/রকেট (পার্সোনাল/ সেন্ড মানি): 01937-866274\nPayment বিকাশ (মার্চেন্ট/পেমেন্ট): 01612-292789\n\nআমাদের সাথে থাকার জন্য আপনাকে আন্তরিক ধন্যবাদ।\n\n আপনার অর্ডার ট্যাক করুন: https://otp.li/order`;
+            
+            navigator.clipboard.writeText(rawText).then(() => {
+                alert("ইনভয়েসের টেক্সট সফলভাবে বাংলায় কপি হয়েছে।");
+            }).catch(err => {
+                alert("কপি করতে সমস্যা হয়েছে।");
+            });
+        }
+
+        async function shareInvoice() {
+            executeHighResCapture(async (canvas) => {
+                canvas.toBlob(async (blob) => {
+                    const documentFile = new File([blob], `${currentInvoiceData.invoiceNo}.jpg`, { type: 'image/jpeg' });
+                    if (navigator.canShare && navigator.canShare({ files: [documentFile] })) {
+                        try {
+                            await navigator.share({
+                                files: [documentFile],
+                                title: 'এ আর এগ্রো এন্ড হ্যাচারী Invoice',
+                                text: `Invoice No: ${currentInvoiceData.invoiceNo}`
+                            });
+                        } catch (error) {
+                            fallbackSharePrompt();
+                        }
+                    } else {
+                        fallbackSharePrompt();
+                    }
+                }, 'image/jpeg');
+            });
+        }
+
+        function fallbackSharePrompt() {
+            alert("আপনার ব্রাউজারে সরাসরি শেয়ার অপশনটি সাপোর্টেড নয়। দয়া করে JPG/PDF ডাউনলোড করে হোয়াটসঅ্যাপ বা মেসেঞ্জারে শেয়ার করুন।");
+        }
+    </script>
+</body>
+</html>
