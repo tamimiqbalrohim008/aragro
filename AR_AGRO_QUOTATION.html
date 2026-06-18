@@ -366,17 +366,14 @@
     <script>
         const eggTypes = ["ইউরোপীয়ান কোয়েলের বীজ ডিম", "কিং কোয়েলের বীজ ডিম"];
 
-        const packagingMatrix = [
-            {min: 0, max: 10, cost: 10}, {min: 11, max: 20, cost: 20}, {min: 21, max: 30, cost: 30},
-            {min: 31, max: 50, cost: 70}, {min: 51, max: 70, cost: 90}, {min: 71, max: 120, cost: 100},
-            {min: 120, max: 200, cost: 200},
-            {min: 200, max: 300, cost: 300}, {min: 300, max: 400, cost: 400}, {min: 400, max: 500, cost: 500}
+   const packagingMatrix = [
+            {min: 0, max: 10, cost: 15}, {min: 11, max: 20, cost: 25}, {min: 21, max: 30, cost: 40},
+            {min: 31, max: 50, cost: 80}, {min: 51, max: 70, cost: 120}, {min: 71, max: 120, cost: 155}
         ];
         
         const courierMatrix = [
-            {min: 0, max: 20, cost: 115}, {min: 21, max: 30, cost: 135}, 
-            {min: 31, max: 50, cost: 155}, {min: 51, max: 120, cost: 175}, {min: 120, max: 200, cost: 220},
-            {min: 200, max: 300, cost: 270}, {min: 300, max: 400, cost: 300}, {min: 400, max: 500, cost: 350}
+            {min: 0, max: 30, cost: 115}, {min: 31, max: 50, cost: 135},
+            {min: 51, max: 70, cost: 155}, {min: 71, max: 120, cost: 175}
         ];
 
         function processBlockRecurse(qty, rules) {
