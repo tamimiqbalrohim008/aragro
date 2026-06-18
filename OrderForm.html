@@ -840,7 +840,7 @@
         }
 
         function copyInvoiceText() {
-            const rawText = `এ আর এগ্রো এন্ড হ্যাচারী\nমেমো নম্বর: ${currentInvoiceData.invoiceNo}\n\nঅর্ডারকারী:\nনাম: ${currentInvoiceData.custName}\nমোবাইল: ${currentInvoiceData.custMobile}\nঠিকানা: ${currentInvoiceData.custAddress}\n\nমোট ডিম: ${currentInvoiceData.totalEggs} পিস\nসর্বমোট মূল্য: ${currentInvoiceData.grandTotal} টাকা\nঅগ্রিম পেমেন্ট যোগ্য: ${currentInvoiceData.advanceAmount} টাকা\nক্যাশ অন ডেলিভারি (বাঁকী): ${currentInvoiceData.codAmount} টাকা\n\nविशेष দ্রষ্টব্যঃ প্যাকেজিং চার্জ ও কুরিয়ার চার্জ বাঁকী রেখে আমরা কোনও অর্ডার গ্রহণ করিনা।\n\nবিকাশ/নগদ/রকেট (পার্সোনাল/ সেন্ড মানি): 01937-866274\nPayment বিকাশ (মার্চেন্ট/পেমেন্ট): 01612-292789\n\nআমাদের সাথে থাকার জন্য আপনাকে আন্তরিক ধন্যবাদ।\n\n আপনার অর্ডার ট্যাক করুন: https://otp.li/order`;
+            const rawText = `এ আর এগ্রো এন্ড হ্যাচারী\nমেমো নম্বর: ${currentInvoiceData.invoiceNo}\n\nঅর্ডারকারী:\nনাম: ${currentInvoiceData.custName}\nমোবাইল: ${currentInvoiceData.custMobile}\nঠিকানা: ${currentInvoiceData.custAddress}\n\nমোট ডিম: ${currentInvoiceData.totalEggs} পিস\nসর্বমোট মূল্য: ${currentInvoiceData.grandTotal} টাকা\nঅগ্রিম পেমেন্ট যোগ্য: ${currentInvoiceData.advanceAmount} টাকা\nক্যাশ অন ডেলিভারি (বাঁকী): ${currentInvoiceData.codAmount} টাকা\n\nविशेष দ্রষ্টব্যঃ প্যাকেজিং চার্জ ও কুরিয়ার চার্জ বাঁকী রেখে আমরা কোনও অর্ডার গ্রহণ করিনা।\n\nবিকাশ/নগদ/রকেট (পার্সোনাল/ সেন্ড মানি): 01937-866274\nPayment বিকাশ (মার্চেন্ট/পেমেন্ট): 01612-292789\n\nআমাদের সাথে থাকার জন্য আপনাকে আন্তরিক ধন্যবাদ।\n\n আপনার অর্ডার ট্যাক করুন: https://otp.li/arOrder`;
             
             navigator.clipboard.writeText(rawText).then(() => {
                 alert("ইনভয়েসের টেক্সট সফলভাবে বাংলায় কপি হয়েছে।");
