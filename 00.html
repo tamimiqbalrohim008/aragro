@@ -1,0 +1,641 @@
+<!DOCTYPE html>
+<html lang="bn">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title> এগ্রোবেজ - কোটেশন এন্ড ইনভয়েস জেনারেটর</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js"></script>
+    <script src="https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js"></script>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700&family=Noto+Serif+Bengali:wght@400;500;600;700&display=swap" rel="stylesheet">
+    
+	
+					<link href="https://fonts.googleapis.com/css2?family=Hind+Siliguri:wght@400;600&display=swap" rel="stylesheet">
+	
+	
+    <style>
+        
+        body, table, input, select, textarea, button, span, div, p, h1, h2, h3 {
+            font-family: 'Inter', 'Noto Serif Bengali', serif !important;
+        }
+        
+        
+        .modern-num {
+            font-variant-numeric: tabular-nums;
+            font-weight: 500;
+        }
+        
+       
+        .preview-container-box {
+            width: 100%;
+            max-width: 800px;
+            background: white !important;
+            color: #1e293b !important;
+            position: relative;
+            box-sizing: border-box;
+        }
+
+        #printDuplicateCopy {
+            display: none;
+        }
+
+     
+        @media print {
+            html, body {
+                height: 100% !important;
+                margin: 0 !important;
+                padding: 0 !important;
+                background: white !important;
+                color: black !important;
+                overflow: hidden !important;
+            }
+            .no-print {
+                display: none !important;
+            }
+            @page {
+                size: A4 landscape;
+                margin: 0 !important;
+            }
+            .dual-print-layout {
+                display: flex !important;
+                flex-direction: row !important;
+                padding: 5mm !important;
+                gap: 6mm !important;
+                height: 100vh !important;
+                width: 100vw !important;
+                box-sizing: border-box !important;
+                page-break-inside: avoid !important;
+            }
+            .invoice-box {
+                width: 49% !important;
+                border: 1px dashed #94a3b8 !important;
+                padding: 16px !important;
+                height: 96% !important;
+                box-sizing: border-box !important;
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            #printDuplicateCopy {
+                display: flex !important;
+                flex-direction: column !important;
+                justify-content: space-between !important;
+            }
+            .preview-container-box {
+                width: 100% !important;
+                max-width: 100% !important;
+                box-shadow: none !important;
+                padding: 0 !important;
+            }
+        }
+        
+     
+        .watermark-logo-container {
+            position: absolute;
+            top: 45%;
+            left: 50%;
+            transform: translate(-50%, -50%) rotate(0deg);
+            width: 48%;
+            height: auto;
+            opacity: 0.04;
+            pointer-events: none;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            z-index: 0;
+        }
+        .watermark-logo-container img {
+            width: 100%;
+            max-width: 240px;
+            object-fit: contain;
+        }
+   
+   
+   
+   
+										:root {
+											--bg-main: #0b0f19;
+											--bg-card: #1e293b;
+											--bg-input: #090d16;
+											--text-main: #f8fafc;
+											--text-muted: #94a3b8;
+											--accent-blue: #3b82f6;
+											--accent-green: #10b981;
+											--accent-red: #ef4444;
+											--border: rgba(255, 255, 255, 0.08);
+										}
+
+										body {
+											background-color: var(--bg-main);
+											color: var(--text-main);
+											font-family: 'Hind Siliguri', sans-serif;
+											margin: 0; padding: 0;
+											box-sizing: border-box;
+										}
+
+										input, button, select, textarea {
+											font-family: 'Hind Siliguri', sans-serif !important;
+											font-size: 14px;
+											letter-spacing: 0.3px;
+										}
+
+										.modal-overlay {
+											position: fixed; top: 0; left: 0; width: 100%; height: 100%;
+											background: rgba(11, 15, 25, 0.98); backdrop-filter: blur(15px);
+											z-index: 99999; display: flex; justify-content: center; align-items: center;
+										}
+										.lock-card {
+											background: var(--bg-card); border: 1px solid var(--border);
+											padding: 30px; border-radius: 16px; width: 85%; max-width: 380px;
+											text-align: center; color: var(--text-main); box-shadow: 0 20px 50px rgba(0,0,0,0.5);
+											position: relative;
+										}
+										.lock-card h2 { font-size: 20px; font-weight: 600; margin-top: 0; color: var(--accent-blue); }
+										.lock-card p { color: var(--text-muted); font-size: 14px; margin-bottom: 15px; }
+										
+										.lock-input {
+											width: 100%; padding: 12px 15px; background: var(--bg-input);
+											border: 1px solid var(--border); color: #fff;
+											border-radius: 8px; margin-bottom: 12px; box-sizing: border-box;
+											transition: 0.2s;
+										}
+										.lock-input:focus {
+											border-color: var(--accent-blue); outline: none;
+											box-shadow: 0 0 0 3px rgba(59, 130, 246, 0.2);
+										}
+										.lock-btn {
+											width: 100%; padding: 12px; background: var(--accent-blue); color: white;
+											border: none; border-radius: 8px; font-weight: 600; cursor: pointer; margin-bottom: 8px;
+											font-size: 15px; transition: 0.2s;
+										}
+										.lock-btn:hover { opacity: 0.9; transform: translateY(-1px); }
+										
+										.back-btn {
+											width: 100%; padding: 10px; background: #475569; color: white;
+											border: none; border-radius: 8px; font-weight: 600; cursor: pointer; font-size: 13px;
+											transition: 0.2s;
+										}
+										.back-btn:hover { background: #334155; }
+										.close-popup-btn {
+											position: absolute; top: 12px; right: 15px; background: none; border: none;
+											color: var(--text-muted); font-size: 18px; cursor: pointer; font-weight: bold;
+										}
+
+										.license-status-bar {
+											background: var(--bg-card); border: 1px solid var(--border);
+											padding: 12px 20px; border-radius: 12px; margin-bottom: 20px;
+											display: flex; justify-content: space-between; align-items: center; gap: 15px;
+										}
+										.status-info { display: flex; gap: 8px; align-items: center; font-size: 14px; }
+										.renew-btn {
+											background: var(--accent-red); color: white; border: none;
+											padding: 8px 16px; border-radius: 8px; font-weight: 600; font-size: 13px; 
+											cursor: pointer; white-space: nowrap; 
+											box-shadow: 0 4px 12px rgba(239, 68, 68, 0.3); transition: 0.2s;
+										}
+										.renew-btn:hover { transform: translateY(-1px); opacity: 0.9; }
+										
+										@media (max-width: 600px) {
+											.license-status-bar { flex-direction: column; align-items: stretch; padding: 12px; gap: 10px; }
+											.status-info { flex-direction: row; justify-content: space-between; font-size: 13px; }
+											.renew-btn { width: 100%; text-align: center; padding: 10px; font-size: 13.5px; }
+											.lock-card { padding: 20px; width: 88%; }
+											.lock-card h2 { font-size: 18px; }
+											.lock-card p { font-size: 13px; }
+										}
+
+										.lic-toast-container {
+											position: fixed; top: 15px; right: 15px; left: 15px; z-index: 100000;
+											display: flex; flex-direction: column; gap: 8px; pointer-events: none;
+										}
+										.lic-toast {
+											background: var(--bg-card); color: #fff; padding: 10px 20px; border-radius: 8px;
+											border-left: 4px solid var(--accent-red); box-shadow: 0 10px 25px rgba(0,0,0,0.3); font-size: 14px;
+											align-self: flex-end; max-width: 100%; box-sizing: border-box; pointer-events: auto;
+										}
+										.lic-toast.success { border-left-color: var(--accent-green); }
+										@media (max-width: 480px) { .lic-toast { align-self: center; width: 100%; text-align: center; } }
+		</style>
+
+	
+	
+	
+</head>
+
+<body>
+
+    <div id="licenseLockScreen" class="modal-overlay" style="display: flex;">
+        <div class="lock-card">
+            <div class="lic-icon-box">
+                <svg class="lic-icon-svg" viewBox="0 0 24 24">
+                    <path d="M12 1L3 5v6c0 5.55 3.84 10.74 9 12 5.16-1.26 9-6.45 9-12V5l-9-4zm0 10.99h7c-.53 4.12-3.28 7.79-7 8.94V12H5V6.3l7-3.11v8.8z"/>
+                </svg>
+            </div>
+            <h2>লাইসেন্স ভেরিফিকেশন</h2>
+            <p>আপনার অ্যাপ্লিকেশনটি সচল করতে অনুগ্রহ করে একটি বৈধ লাইসেন্স কি (License Key) প্রদান করুন।</p>
+            <input type="text" id="licenseKeyInput" class="lock-input" placeholder="এখানে লাইসেন্স কি পেস্ট করুন...">
+            <button class="lock-btn" onclick="validateLicense()">অ্যাক্টিভেট করুন</button>
+        </div>
+    </div>
+
+    <div id="renewModalScreen" class="modal-overlay" style="display: none;">
+        <div class="lock-card">
+            <div style="font-size: 35px; margin-bottom: 8px;">🔑</div>
+            <h2>নতুন লাইসেন্স আপডেট করুন</h2>
+            <p>আপনার লাইসেন্স রিনিউ করতে নতুন কি (Key) এখানে পেস্ট করুন।</p>
+            <input type="text" id="renewKeyInput" class="lock-input" placeholder="নতুন লাইসেন্স কি দিন...">
+            <button class="lock-btn" style="background: var(--accent-green);" onclick="validateRenewLicense()">আপডেট করুন</button>
+            <button class="back-btn" onclick="closeRenewModal()">← ব্যাক (বাতিল করুন)</button>
+        </div>
+    </div>
+
+    <div id="welcomeInfoModal" class="modal-overlay" style="display: none;">
+        <div class="lock-card">
+            <button class="close-popup-btn" onclick="closeWelcomeModal()">✕</button>
+            <div style="font-size: 35px; margin-bottom: 8px;">🎉</div>
+            <h2>প্রিমিয়াম লাইসেন্স সচল আছে</h2>
+            <p>আপনার প্রজেক্টের লাইসেন্সটি সম্পূর্ণ সুরক্ষিত ও দীর্ঘমেয়াদীভাবে সচল রয়েছে।</p>
+            <div style="background: rgba(0,0,0,0.2); padding: 10px; border-radius: 8px; font-size: 13px; text-align: left; margin: 12px 0; line-height: 1.6;">
+                👤 <strong>লাইসেন্সকৃত গ্রাহক:</strong> <span id="popUser" style="color:var(--accent-blue); font-weight: 600;"></span><br>
+                📅 <strong>লাইসেন্সের মেয়াদ:</strong> <span id="popExpiry" style="color:var(--accent-green); font-weight: 600;"></span>
+            </div>
+            <button class="lock-btn" onclick="closeWelcomeModal()">ব্যবহার শুরু করুন</button>
+        </div>
+    </div>
+
+    <div id="licToastContainer" class="lic-toast-container"></div>
+
+
+    <div id="mainAppContent" style="padding: 0; display: none;">
+        
+        <div class="license-status-bar" id="fullLicenseStatusBar">
+            <div class="status-info">
+                <span>🔑 <strong>লাইসেন্স:</strong> <span style="color: var(--accent-green); font-weight:bold;">Active</span></span> 
+                <span id="daysRemainingText"></span>
+            </div>
+            <div id="renewButtonArea">
+                <button class="renew-btn" onclick="openRenewModal()">🔗 লাইসেন্স রিনিউ করুন</button>
+            </div>
+        </div>
+
+								
+								
+								
+								
+								
+								
+								
+								
+								
+								<div id="myMainAppContainer">
+											
+											
+											
+											
+											
+											
+										
+																	<body class="bg-slate-950 text-slate-100 min-h-screen flex flex-col justify-between">
+
+																		<div class="max-w-[1600px] w-full mx-auto p-4 lg:p-6 grid grid-cols-1 lg:grid-cols-12 gap-6 mb-auto">
+																			
+																			<div class="lg:col-span-5 bg-slate-900 border border-slate-800 rounded-2xl p-5 shadow-2xl space-y-4 no-print">
+																				
+																				<div class="flex justify-between items-center border-b border-slate-800 pb-3 gap-3">
+																					<h1 class="text-sm font-bold text-transparent bg-clip-text bg-gradient-to-r from-emerald-400 to-teal-400"> এগ্রোবেজ - কোটেশন এন্ড ইনভয়েস জেনারেটর</h1>
+																					
+																					<div class="flex bg-slate-950 p-1 rounded-xl border border-slate-800">
+																						<label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold cursor-pointer transition bg-emerald-600 text-white" id="lblModeModeQt">
+																							<input type="radio" name="docMode" value="কোটেশন" checked onchange="switchDocumentMode('কোটেশন')" class="sr-only">
+																							📜 কোটেশন
+																						</label>
+																						<label class="flex items-center gap-1.5 px-2.5 py-1 rounded-lg text-[11px] font-semibold text-slate-400 cursor-pointer transition" id="lblModeModeInv">
+																							<input type="radio" name="docMode" value="ইনভয়েস" onchange="switchDocumentMode('ইনভয়েস')" class="sr-only">
+																							📑 ইনভয়েস
+																						</label>
+																					</div>
+																				</div>
+
+																				<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+																					<div>
+																						<label class="block text-[11px] text-slate-400 mb-1">কোম্পানি লোগো (PNG/JPG)</label>
+																						<input type="file" id="cfgLogo" accept="image/*" onchange="handleLogoUpload(this)" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-2 py-1 text-xs text-slate-400 file:mr-2 file:py-0.5 file:px-1.5 file:rounded file:bg-slate-800 file:text-slate-200">
+																					</div>
+																					<div>
+																						<label class="block text-[11px] text-slate-400 mb-1">ডকুমেন্টের ধরণ/টাইটেল</label>
+																						<input type="text" id="cfgDocType" value="অফিসিয়াল কোটেশন" class="w-full bg-slate-950 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+																					</div>
+																				</div>
+
+																				<div class="space-y-3 bg-gradient-to-br from-slate-950 to-slate-900 border border-emerald-500/30 rounded-xl p-4 shadow-xl">
+																					<h2 class="text-xs font-bold text-emerald-400 flex items-center gap-2 uppercase tracking-wider">🏢 কাস্টমার তথ্য</h2>
+																					<div class="space-y-2.5">
+																						<div class="grid grid-cols-1 sm:grid-cols-2 gap-3">
+																							<div>
+																								<label class="block text-[11px] text-slate-400 mb-1">গ্রাহকের নাম</label>
+																								<input type="text" id="custName" value="সম্মানিত গ্রাহক" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+																							</div>
+																							<div>
+																								<label class="block text-[11px] text-slate-400 mb-1">গ্রাহকের মোবাইল নম্বর</label>
+																								<input type="text" id="custPhone" value="01712-345678" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+																							</div>
+																						</div>
+																						<div>
+																							<label class="block text-[11px] text-slate-400 mb-1">ডেলিভারি গন্তব্য/ ঠিকানা</label>
+																							<input type="text" id="custAddress" value="কোনও ঠিকানা নেই" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-3 py-1.5 text-xs text-white focus:outline-none focus:border-emerald-500">
+																						</div>
+																					</div>
+																				</div>
+
+																				<div class="space-y-3 bg-gradient-to-br from-slate-950 to-slate-900 border border-teal-500/30 rounded-xl p-4 shadow-xl">
+																					<div class="flex justify-between items-center">
+																						<h2 class="text-xs font-bold text-teal-400 flex items-center gap-2 uppercase tracking-wider">🛍️ পণ্যের বিবরণ ও মূল্য তালিকা</h2>
+																						<button onclick="addProductRow()" class="px-2.5 py-1 bg-teal-600 hover:bg-teal-500 text-white text-[11px] rounded flex items-center gap-1 transition font-bold shadow">➕ আরও নতুন পণ্য যোগ করুন</button>
+																					</div>
+																					<div id="inputItemsContainer" class="space-y-2.5">
+																						</div>
+																				</div>
+
+																				<div class="space-y-3.5">
+																					<h2 class="text-xs font-bold text-slate-400 flex items-center gap-2 uppercase tracking-wider">⚙️ গ্লোবাল প্যারামিটার কনফিগারেশন</h2>
+																					
+																					<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-2.5">
+																						<div class="flex items-center justify-between">
+																							<span class="text-xs text-slate-300">🚚 কুরিয়ার/প্যাকেজিং চার্জ ফিক্সড করুন</span>
+																							<label class="relative inline-flex items-center cursor-pointer">
+																								<input type="checkbox" id="fixedShippingToggle" onchange="toggleShippingCalculation()" class="sr-only peer">
+																								<div class="w-9 h-5 bg-slate-800 peer-focus:outline-none rounded-full peer peer-checked:after:translate-x-full peer-checked:after:border-white after:content-[''] after:absolute after:top-[2px] after:left-[2px] after:bg-slate-400 after:border-gray-300 after:border after:rounded-full after:h-4 after:w-4 after:transition-all peer-checked:bg-emerald-600 peer-checked:after:bg-white"></div>
+																							</label>
+																						</div>
+																						<div id="manualShippingZone" class="grid grid-cols-2 gap-3 hidden border-t border-slate-900 pt-2">
+																							<div>
+																								<label class="block text-[10px] text-slate-400 mb-1">কাস্টম কুরিয়ার চার্জ (৳)</label>
+																								<input type="number" id="manualCourierCost" value="0" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs focus:outline-none text-white">
+																							</div>
+																							<div>
+																								<label class="block text-[10px] text-slate-400 mb-1">কাস্টম প্যাকেজিং চার্জ (৳)</label>
+																								<input type="number" id="manualPackageCost" value="0" class="w-full bg-slate-900 border border-slate-800 rounded-lg px-2.5 py-1 text-xs focus:outline-none text-white">
+																							</div>
+																						</div>
+																					</div>
+
+																					<div class="grid grid-cols-2 gap-3">
+																						<div>
+																							<label class="block text-[11px] text-slate-400 mb-1">ডিসকাউন্ট (৳ বা %)</label>
+																							<div class="flex rounded-lg bg-slate-950 border border-slate-800 overflow-hidden focus-within:border-emerald-500">
+																								<input type="number" id="cfgDiscount" value="0" class="w-full bg-transparent px-2.5 py-1 text-xs text-white focus:outline-none">
+																								<select id="discountType" class="bg-slate-900 text-xs px-1 text-slate-300 focus:outline-none">
+																									<option value="flat">৳</option>
+																									<option value="percent">%</option>
+																								</select>
+																							</div>
+																						</div>
+																						<div>
+																							<label class="block text-[11px] text-slate-400 mb-1">ভ্যাট / ট্যাক্স (% বা ৳)</label>
+																							<div class="flex rounded-lg bg-slate-950 border border-slate-800 overflow-hidden focus-within:border-emerald-500">
+																								<input type="number" id="cfgTax" value="0" class="w-full bg-transparent px-2.5 py-1 text-xs text-white focus:outline-none">
+																								<select id="taxType" class="bg-slate-900 text-xs px-1 text-slate-300 focus:outline-none">
+																									<option value="percent">%</option>
+																									<option value="flat">৳</option>
+																								</select>
+																							</div>
+																						</div>
+																					</div>
+
+																					<div class="bg-slate-950 p-3 border border-slate-800 rounded-xl space-y-2.5">
+																						<label class="block text-[11px] text-slate-300 font-medium">🔒 অগ্রিম বুকিং মানি পরিবর্তন করুন</label>
+																						
+																						<div class="flex flex-wrap gap-x-4 gap-y-1.5 text-[10px] text-slate-400 bg-slate-900 p-2 rounded-lg border border-slate-800">
+																							<label class="flex items-center gap-1.5 cursor-pointer">
+																								<input type="checkbox" id="includeCourierInAdvance" checked class="rounded border-slate-700 bg-slate-950 text-emerald-600 focus:ring-0">
+																								➕ কুরিয়ার চার্জ যুক্ত করুন
+																							</label>
+																							<label class="flex items-center gap-1.5 cursor-pointer">
+																								<input type="checkbox" id="includePackageInAdvance" checked class="rounded border-slate-700 bg-slate-950 text-emerald-600 focus:ring-0">
+																								➕ প্যাকেজিং খরচ যুক্ত করুন
+																							</label>
+																						</div>
+
+																						<div class="flex rounded-lg bg-slate-900 border border-slate-800 overflow-hidden focus-within:border-emerald-500">
+																							<input type="number" id="manualAdvanceCost" value="0" class="w-full bg-transparent px-2.5 py-1.5 text-xs text-white focus:outline-none">
+																							<select id="advanceType" class="bg-slate-800 text-xs px-2 text-slate-200 focus:outline-none">
+																								<option value="flat">৳ ফিক্সড</option>
+																								<option value="percent">% পার্সেন্ট</option>
+																							</select>
+																						</div>
+																					</div>
+																				</div>
+
+																				<div class="pt-1">
+																					<button onclick="generateAndPublishDocument()" class="w-full py-3 px-4 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-xl text-xs sm:text-sm transition shadow-2xl flex items-center justify-center gap-2 tracking-wide">⚙️ ইনভয়েস/কোটেশন তৈরী করুন</button>
+																				</div>
+
+																				<div id="actionButtonsZone" class="hidden space-y-2.5 pt-3 border-t border-slate-800 transition-all duration-300">
+																					<div class="grid grid-cols-2 gap-3">
+																						<button onclick="exportToJPG()" class="flex items-center justify-center gap-1.5 bg-gradient-to-r from-amber-600 to-orange-600 hover:from-amber-500 hover:to-orange-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs transition shadow-lg">📥 ডাউনলোড JPG</button>
+																						<button onclick="exportToPDF()" class="flex items-center justify-center gap-1.5 bg-gradient-to-r from-blue-600 to-indigo-600 hover:from-blue-500 hover:to-indigo-500 text-white font-semibold py-2.5 px-3 rounded-xl text-xs transition shadow-lg">📄 ডাউনলোড PDF</button>
+																					</div>
+																					<div class="grid grid-cols-2 gap-3">
+																						<button onclick="copyToClipboardText()" class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-3 rounded-xl text-xs transition">📋 টেক্সট কপি করুন</button>
+																						<button onclick="window.print()" class="flex items-center justify-center gap-1.5 bg-slate-800 hover:bg-slate-700 text-slate-200 font-semibold py-2.5 px-3 rounded-xl text-xs transition">🖨️ প্রিন্ট করুন</button>
+																					</div>
+																				</div>
+																			</div>
+
+																			<div class="lg:col-span-7 flex flex-col items-center overflow-x-auto w-full">
+																				
+																				<div id="exportPrintCaptureZone" class="preview-container-box shadow-2xl p-6 md:p-8 flex flex-col justify-between border border-slate-200 rounded-2xl min-h-[1060px]">
+																					
+																					<div class="watermark-logo-container">
+																						<img id="viewWatermarkLogo" src="" alt="Watermark" class="hidden">
+																					</div>
+
+																					<div id="dualPrintWrapper" class="dual-print-layout h-full flex flex-col justify-between z-10 relative">
+																						
+																						<div class="invoice-box flex flex-col justify-between h-full space-y-5">
+																							
+																							<div class="space-y-4 flex-get-top">
+																								<div class="flex justify-between items-start">
+																									<div class="flex items-center gap-3">
+																										<img id="viewLogo" src="data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='40' height='40' viewBox='0 0 24 24' fill='none' stroke='%2310b981' stroke-width='2'><path d='M12 2L2 7l10 5 10-5-10-5zM2 17l10 5 10-5M2 12l10 5 10-5'/></svg>" alt="Logo" class="w-12 h-12 object-contain rounded-md">
+																										<div>
+																											<h2 id="viewBrandName" class="text-base md:text-lg font-bold text-slate-900 leading-tight">এগ্রোবেজ - কোটেশন এন্ড ইনভয়েস জেনারেটর</h2>
+																											<p id="viewAddress" class="text-[11px] md:text-xs text-slate-500">আপনার কোম্পানীর ঠিকানা, থানা, জেলা</p>
+																											<p id="viewPhone" class="text-[11px] md:text-xs text-slate-500 font-semibold">মোবাইলঃ 01712-345678</p>
+																										</div>
+																									</div>
+																									<div class="text-right">
+																										<div class="flex flex-col items-end">
+																											<span id="viewSubDocType" class="text-base font-bold text-slate-800 tracking-wide">অফিসিয়াল কোটেশন</span>
+																											<span id="viewSecurityCode" class="text-xs md:text-sm font-bold text-emerald-600 font-mono tracking-wider mt-0.5">-</span>
+																										</div>
+																										<p class="text-[11px] text-slate-400 mt-1">তারিখ: <span id="viewDate" class="text-slate-600 font-semibold font-mono">-</span></p>
+																									</div>
+																								</div>
+
+																								<div class="bg-slate-50 rounded-xl p-3 grid grid-cols-2 gap-2 text-[11px] md:text-xs">
+																									<div class="space-y-0.5">
+																										<span class="text-[9px] md:text-[10px] text-slate-400 block uppercase font-bold tracking-wide">গ্রাহকের বিবরণ</span>
+																										<div class="font-bold text-slate-800"><span id="viewCustName">-</span></div>
+																										<div class="text-slate-500">মোবাইল: <span id="viewCustPhone" class="font-mono font-semibold">-</span></div>
+																									</div>
+																									<div class="text-right flex flex-col justify-between">
+																										<span class="text-[9px] md:text-[10px] text-slate-400 block uppercase font-bold tracking-wide">ডেলিভারি স্থান</span>
+																										<span id="viewCustAddress" class="font-bold text-slate-700 block">-</span>
+																									</div>
+																								</div>
+
+																								<div class="overflow-hidden pt-2">
+																									<table class="w-full text-left border-collapse">
+																										<thead>
+																											<tr class="border-b-2 border-slate-200 text-[11px] md:text-xs font-bold uppercase text-slate-400">
+																												<th class="py-2">পণ্যের বিবরণ</th>
+																												<th class="py-2 text-center">পরিমাণ</th>
+																												<th class="py-2 text-right">একক মূল্য</th>
+																												<th class="py-2 text-right">মোট মূল্য</th>
+																											</tr>
+																										</thead>
+																										<tbody id="viewTableBody" class="divide-y divide-slate-100 text-[11px] md:text-xs text-slate-700">
+																											<tr><td colspan="4" class="py-6 text-center text-slate-400 italic font-medium">তথ্য পূরণ করে "ইনভয়েস/কোটেশন তৈরী করুন" বাটনে ক্লিক করুন...</td></tr>
+																										</tbody>
+																									</table>
+																								</div>
+																							</div>
+
+																							<div class="space-y-4 flex-1 flex flex-col justify-end">
+																								
+																								<div class="flex justify-end">
+																									<div class="w-64 space-y-1 text-[11px] md:text-xs">
+																										<div class="flex justify-between text-slate-500">
+																											<span>পণ্যের সাব-টোটাল:</span>
+																											<span id="valSubtotal" class="modern-num text-slate-700">৳0.00</span>
+																										</div>
+																										<div id="rowTax" class="flex justify-between text-slate-500">
+																											<span>ভ্যাট / ট্যাক্স:</span>
+																											<span id="valTax" class="modern-num text-slate-700">৳0.00</span>
+																										</div>
+																										<div id="rowDiscount" class="flex justify-between text-slate-500">
+																											<span>ডিসকাউন্ট:</span>
+																											<span id="valDiscount" class="modern-num text-slate-700">৳0.00</span>
+																										</div>
+																										<div class="flex justify-between text-slate-500">
+																											<span>প্যাকেজিং খরচ:</span>
+																											<span id="valPackage" class="modern-num text-slate-700">৳0.00</span>
+																										</div>
+																										<div class="flex justify-between text-slate-500 pb-0.5">
+																											<span>কুরিয়ার চার্জ:</span>
+																											<span id="valCourier" class="modern-num text-slate-700">৳0.00</span>
+																										</div>
+																										<div class="flex justify-between text-slate-900 font-bold border-t border-slate-100 pt-1 text-xs md:text-sm">
+																											<span>সর্বমোট বিল:</span>
+																											<span id="valTotal" class="modern-num text-slate-900">৳0.00</span>
+																										</div>
+																										<div class="flex justify-between text-emerald-700 font-bold text-xs md:text-sm">
+																											<span>অগ্রিম বুকিং মানি:</span>
+																											<span id="valAdvance" class="modern-num text-emerald-700">৳0.00</span>
+																										</div>
+																										<div class="flex justify-between text-amber-700 font-bold text-xs md:text-sm">
+																											<span>ক্যাশ অন ডেলিভারি:</span>
+																											<span id="valCod" class="modern-num text-amber-700">৳0.00</span>
+																										</div>
+																									</div>
+																								</div>
+
+																								<div class="grid grid-cols-2 gap-4 border-t border-slate-100 pt-2 text-[10px] md:text-[11px] leading-relaxed text-slate-500">
+																									<div>
+																										<span class="font-bold text-slate-800 block mb-0.5">💳 পেমেন্ট গেটওয়েঃ</span>
+																										<ul id="viewPaymentInfo" class="space-y-0.5 font-medium"></ul>
+																									</div>
+																									<div>
+																										<span class="font-bold text-slate-800 block mb-0.5">📌 শর্তাবলী ও নোটঃ</span>
+																										<p id="viewNotes" class="font-medium"></p>
+																									</div>
+																								</div>
+																							</div>
+
+																						</div> <div id="printDuplicateCopy" class="invoice-box flex flex-col justify-between h-full space-y-5"></div>
+
+																					</div>
+																					
+																				</div>
+																			</div>
+																		</div>
+
+																		<div id="toastNotification" class="fixed bottom-12 right-5 bg-slate-900 border border-emerald-500 text-emerald-400 px-4 py-2.5 rounded-xl text-xs font-semibold shadow-2xl transition-opacity duration-300 opacity-0 pointer-events-none no-print z-50">
+																			সফল হয়েছে!
+																		</div>
+
+																		<footer class="w-full bg-slate-900 border-t border-slate-800 text-center py-4 px-4 flex flex-col sm:flex-row items-center justify-center gap-3 text-xs text-slate-400 no-print font-medium">
+																			<span>অনুরূপ প্রফেশনাল অ্যাপ্লিকেশন তৈরি করতে যোগাযোগ করুন:</span>
+																			<a href="https://wa.me/8801886042024" target="_blank" class="inline-flex items-center gap-2 px-4 py-1.5 bg-gradient-to-r from-emerald-600 to-teal-600 hover:from-emerald-500 hover:to-teal-500 text-white font-bold rounded-full transition-all duration-300 shadow-lg hover:scale-105 active:scale-95 group">
+																				<svg class="w-4 h-4 fill-current text-white animate-pulse" xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24">
+																					<path d="M.057 24l1.687-6.163c-1.041-1.804-1.588-3.849-1.587-5.946C.06 5.348 5.397 0 12.008 0c3.202.001 6.212 1.249 8.477 3.514 2.266 2.265 3.51 5.272 3.51 8.474-.004 6.657-5.34 12.004-11.95 12.004-.001 0 0 0 0 0-2.003-.001-3.975-.511-5.727-1.483L0 24zm6.59-4.846c1.6.95 3.188 1.449 4.825 1.451 5.436 0 9.86-4.37 9.864-9.742.002-2.602-1.01-5.05-2.85-6.891-1.839-1.84-4.288-2.854-6.892-2.855-5.44 0-9.863 4.37-9.867 9.743-.001 1.706.469 3.374 1.357 4.849l-.994 3.635 3.757-.965zm10.307-3.414c-.269-.134-1.593-.786-1.839-.875-.246-.089-.425-.134-.604.134-.179.268-.693.875-.85 1.054-.156.179-.312.201-.581.067-.268-.134-1.134-.418-2.16-1.334-.798-.711-1.336-1.59-1.493-1.858-.156-.268-.017-.413.118-.547.121-.121.269-.314.403-.47.134-.157.179-.269.269-.448.089-.179.045-.335-.022-.469-.067-.134-.604-1.456-.827-1.993-.217-.522-.44-.452-.604-.46l-.516-.008c-.179 0-.47.067-.716.335-.246.268-.94.919-.94 2.243s.961 2.597 1.096 2.776c.134.179 1.892 2.889 4.584 4.053.64.277 1.139.442 1.53.566.643.204 1.228.175 1.691.106.516-.077 1.593-.651 1.817-1.279.224-.628.224-1.166.157-1.279-.067-.113-.246-.179-.516-.313z"/>
+																				</svg>
+																				<span class="font-mono tracking-wider">01886042024</span>
+																			</a>
+																		</footer>
+
+											
+											
+											
+											
+											
+											
+											
+											
+											
+
+										</div>
+								
+								
+								
+								
+								
+																									
+												<script>
+										let _0x4f0d3e;const REQUIRED_PROJECT_ID="arugob-iod".split("").reverse().join("");_0x4f0d3e='\u0063\u0062\u0062\u0066\u006B\u0067';const SECRET_PASSPHRASE="\u004D\u0079\u005F\u0053\u0075\u0070\u0065\u0072\u005F\u0053\u0065\u0063\u0072\u0065\u0074\u005F\u004B\u0065\u0079\u005F\u0031\u0032\u0033";let isLongTermLicense=false;window['\u006F\u006E\u006C\u006F\u0061\u0064']=function(){const _0xaac=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0070\u0070\u005F\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u005F\u006B\u0065\u0079");if(_0xaac){checkLicense(_0xaac,!![]);}else{document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u004C\u006F\u0063\u006B\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0066\u006C\u0065\u0078";}};function showLicToast(message,isSuccess=false){const _0x482d3c=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0054\u006F\u0061\u0073\u0074\u0043\u006F\u006E\u0074\u0061\u0069\u006E\u0065\u0072");if(!_0x482d3c)return;const _0x2b1abf=document['\u0063\u0072\u0065\u0061\u0074\u0065\u0045\u006C\u0065\u006D\u0065\u006E\u0074']("\u0064\u0069\u0076");_0x2b1abf['\u0063\u006C\u0061\u0073\u0073\u004E\u0061\u006D\u0065']=`lic-toast ${isSuccess?"sseccus".split("").reverse().join(""):''}`;_0x2b1abf['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=message;_0x482d3c['\u0061\u0070\u0070\u0065\u006E\u0064\u0043\u0068\u0069\u006C\u0064'](_0x2b1abf);setTimeout(()=>{_0x2b1abf['\u0072\u0065\u006D\u006F\u0076\u0065']();},658379^656999);}function validateLicense(){const _0x82a1ad=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u004B\u0065\u0079\u0049\u006E\u0070\u0075\u0074")['\u0076\u0061\u006C\u0075\u0065']['\u0074\u0072\u0069\u006D']();if(!_0x82a1ad){showLicToast("!\u09A8\u09C1\u09B0\u0995 \u09A8\u09BE\u09A6\u09B0\u09CD\u09AA \u09BF\u0995 \u09B8\u09CD\u09A8\u09C7\u09B8\u0987\u09BE\u09B2 \u09BF\u099F\u0995\u098F \u09C7\u09B0\u0995 \u09B9\u09B0\u09CD\u0997\u09C1\u09A8\u0985".split("").reverse().join(""));return;}checkLicense(_0x82a1ad,false);}function validateRenewLicense(_0xcfce){const _0x2_0xcc1=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0072\u0065\u006E\u0065\u0077\u004B\u0065\u0079\u0049\u006E\u0070\u0075\u0074")['\u0076\u0061\u006C\u0075\u0065']['\u0074\u0072\u0069\u006D']();if(!_0x2_0xcc1){showLicToast("!\u09A8\u09BF\u09A6 \u09BF\u099F-\u09BF\u0995 \u09B8\u09CD\u09A8\u09C7\u09B8\u0987\u09BE\u09B2 \u09A8\u09C1\u09A4\u09A8 \u09C7\u09B0\u0995 \u09B9\u09B0\u09CD\u0997\u09C1\u09A8\u0985".split("").reverse().join(""));return;}const _0x6236gg=checkLicense(_0x2_0xcc1,false);_0xcfce=(515266^515266)+(151995^151994);if(_0x6236gg){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0072\u0065\u006E\u0065\u0077\u004D\u006F\u0064\u0061\u006C\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0072\u0065\u006E\u0065\u0077\u004B\u0065\u0079\u0049\u006E\u0070\u0075\u0074")['\u0076\u0061\u006C\u0075\u0065']='';}}function openRenewModal(){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0072\u0065\u006E\u0065\u0077\u004D\u006F\u0064\u0061\u006C\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0066\u006C\u0065\u0078";}function closeRenewModal(){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0072\u0065\u006E\u0065\u0077\u004D\u006F\u0064\u0061\u006C\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";}function closeWelcomeModal(){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ladoMofnIemoclew".split("").reverse().join(""))['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";if(isLongTermLicense){const _0x8527be=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("raBsutatSesneciLlluf".split("").reverse().join(""));if(_0x8527be)_0x8527be['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="enon".split("").reverse().join("");}}function b64DecodeUnicode(str){return decodeURIComponent(escape(atob(str)));}function checkLicense(key,isSilent){try{const _0xe5c2ed=b64DecodeUnicode(key);const _0xb7614c=_0xe5c2ed['\u0073\u0070\u006C\u0069\u0074']("\u007C\u007C");if(_0xb7614c['\u006C\u0065\u006E\u0067\u0074\u0068']!==(653339^653343)){if(!isSilent)showLicToast("\u0985\u09AC\u09C8\u09A7\u0020\u09AC\u09BE\u0020\u09AD\u09C1\u09B2\u0020\u09B2\u09BE\u0987\u09B8\u09C7\u09A8\u09CD\u09B8\u0020\u0995\u09BF\u0021");document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u004C\u006F\u0063\u006B\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0066\u006C\u0065\u0078";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u0069\u006E\u0041\u0070\u0070\u0043\u006F\u006E\u0074\u0065\u006E\u0074")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";return false;}const _0xc4193b=_0xb7614c[129437^129437];const _0xb412bd=_0xb7614c[835967^835966];const _0x8d0a=_0xb7614c[664646^664644];const _0x798da=_0xb7614c[353478^353477];if(_0x798da!==SECRET_PASSPHRASE||_0xb412bd!==REQUIRED_PROJECT_ID){if(!isSilent)showLicToast("\u09AD\u09C7\u09B0\u09BF\u09AB\u09BF\u0995\u09C7\u09B6\u09A8\u0020\u09AC\u09CD\u09AF\u09B0\u09CD\u09A5\u0021\u0020\u098F\u099F\u09BF\u0020\u09B2\u09BE\u0987\u09B8\u09C7\u09A8\u09CD\u09B8\u0020\u099F\u09BF\u0020\u0986\u09AA\u09A8\u09BE\u09B0\u0020\u09A8\u09DF\u0964");document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u004C\u006F\u0063\u006B\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0066\u006C\u0065\u0078";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u0069\u006E\u0041\u0070\u0070\u0043\u006F\u006E\u0074\u0065\u006E\u0074")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";return false;}const _0xf_0x944=new Date();let _0x_0x412;const _0xf596b=new Date(_0x8d0a);_0x_0x412=792857^792858;_0xf_0x944['\u0073\u0065\u0074\u0048\u006F\u0075\u0072\u0073'](770140^770140,741767^741767,366109^366109,816605^816605);_0xf596b['\u0073\u0065\u0074\u0048\u006F\u0075\u0072\u0073'](236992^236992,227743^227743,233261^233261,741258^741258);var _0x843a8d=(311957^311959)+(166485^166485);const _0x08eccd=_0xf596b['\u0067\u0065\u0074\u0054\u0069\u006D\u0065']()-_0xf_0x944['\u0067\u0065\u0074\u0054\u0069\u006D\u0065']();_0x843a8d=(164312^164319)+(411027^411024);const _0xc0d40f=Math['\u0063\u0065\u0069\u006C'](_0x08eccd/((359179^358627)*(482503^479959)*(362401^362425)));if(_0xc0d40f<(431258^431258)){if(!isSilent)alert(`❌ এই লাইসেন্সটির মেয়াদ ${_0x8d0a} তারিখে শেষ হয়ে গেছে।`);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u004C\u006F\u0063\u006B\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="xelf".split("").reverse().join("");document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tnetnoCppAniam".split("").reverse().join(""))['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";return false;}localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0070\u0070\u005F\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u005F\u006B\u0065\u0079",key);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("neercSkcoLesnecil".split("").reverse().join(""))['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tnetnoCppAniam".split("").reverse().join(""))['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0062\u006C\u006F\u0063\u006B";const _0xa51da=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("txeTgniniameRsyad".split("").reverse().join(""));if(_0xa51da){if(_0xc0d40f===(820616^820616)){_0xa51da['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']=`| ⚠️ <span style="color: var(--accent-red); font-weight: bold;">আজই শেষ দিন!</span>`;}else{_0xa51da['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']=`| ⏳ লাইসেন্স শেষ হতে বাকি: <span style="color: var(--accent-blue); font-weight: bold;">${_0xc0d40f} দিন</span>`;}}if(_0xc0d40f>(189374^189344)){isLongTermLicense=!![];if(isSilent){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0070\u006F\u0070\u0055\u0073\u0065\u0072")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xc4193b;document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0070\u006F\u0070\u0045\u0078\u0070\u0069\u0072\u0079")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0x8d0a;document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ladoMofnIemoclew".split("").reverse().join(""))['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0066\u006C\u0065\u0078";}else{const fullStatusBar=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0066\u0075\u006C\u006C\u004C\u0069\u0063\u0065\u006E\u0073\u0065\u0053\u0074\u0061\u0074\u0075\u0073\u0042\u0061\u0072");if(fullStatusBar)fullStatusBar['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u006E\u006F\u006E\u0065";}}else{isLongTermLicense=false;const fullStatusBar=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("raBsutatSesneciLlluf".split("").reverse().join(""));if(fullStatusBar)fullStatusBar['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="xelf".split("").reverse().join("");}if(!isSilent)showLicToast(`🎉 আপনার লাইসেন্সটি সফলভাবে সচল হয়েছে!`,!![]);return!![];}catch(e){if(!isSilent)showLicToast("!\u09BF\u0995 \u09B8\u09CD\u09A8\u09C7\u09B8\u0987\u09BE\u09B2 \u09A3\u09CD\u09B0\u09C2\u09AA\u09BF\u099F\u09C1\u09B0\u09CD\u09A4".split("").reverse().join(""));document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0069\u0063\u0065\u006E\u0073\u0065\u004C\u006F\u0063\u006B\u0053\u0063\u0072\u0065\u0065\u006E")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="\u0066\u006C\u0065\u0078";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u0069\u006E\u0041\u0070\u0070\u0043\u006F\u006E\u0074\u0065\u006E\u0074")['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="enon".split("").reverse().join("");return false;}}
+												</script>								
+								
+    <script>
+      	  let _0xab58a;const CORE_BUSINESS_CONFIG={'\u006E\u0061\u006D\u0065':"\u098F\u0997\u09CD\u09B0\u09CB\u09AC\u09C7\u099C\u0020\u002D\u0020\u0995\u09CB\u099F\u09C7\u09B6\u09A8\u0020\u098F\u09A8\u09CD\u09A1\u0020\u0987\u09A8\u09AD\u09DF\u09C7\u09B8\u0020\u099C\u09C7\u09A8\u09BE\u09B0\u09C7\u099F\u09B0","address":"\u0986\u09AA\u09A8\u09BE\u09B0\u0020\u09A0\u09BF\u0995\u09BE\u09A8\u09BE\u002C\u0020\u09A5\u09BE\u09A8\u09BE\u002C\u0020\u099C\u09C7\u09B2\u09BE",'\u0070\u0068\u006F\u006E\u0065':"01712-345678, 01712-345678","currency":"\u09F3","paymentHTML":`
+                <li><strong>বিকাশ/নগদ/ রকেট (পার্সোনাল):</strong> 01712-345678</li>
+                <li><strong>বিকাশ (মার্চেন্ট):</strong> 01712-345678 (Payment)</li>
+            `,"notesText":"\u09AA\u09CD\u09AF\u09BE\u0995\u09C7\u099C\u09BF\u0982\u0020\u0993\u0020\u0995\u09C1\u09B0\u09BF\u09DF\u09BE\u09B0\u0020\u099A\u09BE\u09B0\u09CD\u099C\u0020\u0985\u0997\u09CD\u09B0\u09BF\u09AE\u0020\u09AA\u09CD\u09B0\u09A6\u09BE\u09A8\u0020\u09B8\u09BE\u09AA\u09C7\u0995\u09CD\u09B7\u09C7\u0020\u0995\u09C1\u09B0\u09BF\u09DF\u09BE\u09B0\u0020\u0995\u09A8\u09CD\u09A1\u09BF\u09B6\u09A8\u09C7\u0020\u0995\u09CD\u09AF\u09BE\u09B6\u0020\u0985\u09A8\u0020\u09A1\u09C7\u09B2\u09BF\u09AD\u09BE\u09B0\u09BF\u09A4\u09C7\u0020\u0985\u09B0\u09CD\u09A1\u09BE\u09B0\u0020\u0995\u09A8\u09AB\u09BE\u09B0\u09CD\u09AE\u0020\u0995\u09B0\u09BE\u0020\u09B9\u09DF\u0964"};_0xab58a='\u006B\u0070\u0065\u006C\u006E\u0068';let _0x64b51f;const PRODUCT_RATE_MAP={"\u0986\u09AA\u09A8\u09BE\u09B0\u0020\u09AA\u099B\u09A8\u09CD\u09A6\u09A8\u09C0\u09DF\u0020\u09AA\u09A3\u09CD\u09AF\u0020\u09E7":10,"আপনার পছন্দনীয় পণ্য ২":15,"\u0986\u09AA\u09A8\u09BE\u09B0\u0020\u09AA\u099B\u09A8\u09CD\u09A6\u09A8\u09C0\u09DF\u0020\u09AA\u09A3\u09CD\u09AF\u0020\u09E9":20,"\u0986\u09AA\u09A8\u09BE\u09B0\u0020\u09AA\u099B\u09A8\u09CD\u09A6\u09A8\u09C0\u09DF\u0020\u09AA\u09A3\u09CD\u09AF\u0020\u09EA":25};_0x64b51f=(703124^703123)+(224272^224273);let currentDocMode="\u09A8\u09B6\u09C7\u099F\u09CB\u0995".split("").reverse().join("");let generatedUniqueCode="";window['\u0061\u0064\u0064\u0045\u0076\u0065\u006E\u0074\u004C\u0069\u0073\u0074\u0065\u006E\u0065\u0072']("dedaoLtnetnoCMOD".split("").reverse().join(""),()=>{initStaticProfileData();generateDocumentID();loadSavedLogo();loadSavedGlobalSettings();addProductRow(Object['\u006B\u0065\u0079\u0073'](PRODUCT_RATE_MAP)[705603^705603],673559^673558,PRODUCT_RATE_MAP[Object['\u006B\u0065\u0079\u0073'](PRODUCT_RATE_MAP)[372143^372143]]);});function initStaticProfileData(){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0042\u0072\u0061\u006E\u0064\u004E\u0061\u006D\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=CORE_BUSINESS_CONFIG['\u006E\u0061\u006D\u0065'];document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0041\u0064\u0064\u0072\u0065\u0073\u0073")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=CORE_BUSINESS_CONFIG['\u0061\u0064\u0064\u0072\u0065\u0073\u0073'];document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0050\u0068\u006F\u006E\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']="\u09AE\u09CB\u09AC\u09BE\u0987\u09B2\u0983\u0020"+CORE_BUSINESS_CONFIG['\u0070\u0068\u006F\u006E\u0065'];document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ofnItnemyaPweiv".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']=CORE_BUSINESS_CONFIG['\u0070\u0061\u0079\u006D\u0065\u006E\u0074\u0048\u0054\u004D\u004C'];document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("setoNweiv".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=CORE_BUSINESS_CONFIG['\u006E\u006F\u0074\u0065\u0073\u0054\u0065\u0078\u0074'];}function loadSavedLogo(){const _0x55a=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0063\u0061\u0063\u0068\u0065\u0064\u005F\u006C\u006F\u0067\u006F");if(_0x55a){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u004C\u006F\u0067\u006F")['\u0073\u0072\u0063']=_0x55a;var _0x232af=(811734^811742)+(913963^913965);const _0xb7e4e=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ogoLkramretaWweiv".split("").reverse().join(""));_0x232af="odbfhk".split("").reverse().join("");_0xb7e4e['\u0073\u0072\u0063']=_0x55a;_0xb7e4e['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("\u0068\u0069\u0064\u0064\u0065\u006E");}}function loadSavedGlobalSettings(){if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0066\u0069\u0078\u0065\u0064\u005F\u0073\u0068\u0069\u0070\u0070\u0069\u006E\u0067")==="eurt".split("").reverse().join("")){document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("elggoTgnippihSdexif".split("").reverse().join(""))['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']=!![];document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("enoZgnippihSlaunam".split("").reverse().join(""))['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("\u0068\u0069\u0064\u0064\u0065\u006E");}if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0063\u006F\u0075\u0072\u0069\u0065\u0072\u005F\u0063\u006F\u0073\u0074"))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u006E\u0075\u0061\u006C\u0043\u006F\u0075\u0072\u0069\u0065\u0072\u0043\u006F\u0073\u0074")['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("tsoc_reiruoc_orga_ra".split("").reverse().join(""));if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0070\u0061\u0063\u006B\u0061\u0067\u0065\u005F\u0063\u006F\u0073\u0074"))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u006E\u0075\u0061\u006C\u0050\u0061\u0063\u006B\u0061\u0067\u0065\u0043\u006F\u0073\u0074")['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("tsoc_egakcap_orga_ra".split("").reverse().join(""));if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("tnuocsid_orga_ra".split("").reverse().join("")))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tnuocsiDgfc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0064\u0069\u0073\u0063\u006F\u0075\u006E\u0074");if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("epyt_tnuocsid_orga_ra".split("").reverse().join("")))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0064\u0069\u0073\u0063\u006F\u0075\u006E\u0074\u0054\u0079\u0070\u0065")['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0064\u0069\u0073\u0063\u006F\u0075\u006E\u0074\u005F\u0074\u0079\u0070\u0065");if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("xat_orga_ra".split("").reverse().join("")))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("xaTgfc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0074\u0061\u0078");if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0074\u0061\u0078\u005F\u0074\u0079\u0070\u0065"))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTxat".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0074\u0061\u0078\u005F\u0074\u0079\u0070\u0065");if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u0061\u006E\u0063\u0065\u005F\u0063\u006F\u0073\u0074"))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tsoCecnavdAlaunam".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u0061\u006E\u0063\u0065\u005F\u0063\u006F\u0073\u0074");if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u0061\u006E\u0063\u0065\u005F\u0074\u0079\u0070\u0065"))document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTecnavda".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("epyt_ecnavda_orga_ra".split("").reverse().join(""));if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("reiruoc_cni_vda_orga_ra".split("").reverse().join(""))==="\u0066\u0061\u006C\u0073\u0065")document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ecnavdAnIreiruoCedulcni".split("").reverse().join(""))['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']=false;if(localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u005F\u0069\u006E\u0063\u005F\u0070\u0061\u0063\u006B\u0061\u0067\u0065")==="\u0066\u0061\u006C\u0073\u0065")document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ecnavdAnIegakcaPedulcni".split("").reverse().join(""))['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']=false;}function switchDocumentMode(mode){currentDocMode=mode;const _0x1fc6g=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006C\u0062\u006C\u004D\u006F\u0064\u0065\u004D\u006F\u0064\u0065\u0051\u0074");const _0x309ab=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("vnIedoMedoMlbl".split("").reverse().join(""));var _0xc692cf=(569812^569809)+(829269^829269);const _0x64d5fd=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTcoDgfc".split("").reverse().join(""));_0xc692cf='\u006A\u0067\u0069\u0065\u0067\u0066';if(mode==="\u09A8\u09B6\u09C7\u099F\u09CB\u0995".split("").reverse().join("")){_0x1fc6g['\u0063\u006C\u0061\u0073\u0073\u004E\u0061\u006D\u0065']="etihw-txet noitisnart retniop-rosruc dlobimes-tnof ]xp11[-txet gl-dednuor 006-dlareme-gb 1-yp 5.2-xp 5.1-pag retnec-smeti xelf".split("").reverse().join("");_0x309ab['\u0063\u006C\u0061\u0073\u0073\u004E\u0061\u006D\u0065']="\u0066\u006C\u0065\u0078\u0020\u0069\u0074\u0065\u006D\u0073\u002D\u0063\u0065\u006E\u0074\u0065\u0072\u0020\u0067\u0061\u0070\u002D\u0031\u002E\u0035\u0020\u0070\u0078\u002D\u0032\u002E\u0035\u0020\u0070\u0079\u002D\u0031\u0020\u0072\u006F\u0075\u006E\u0064\u0065\u0064\u002D\u006C\u0067\u0020\u0074\u0065\u0078\u0074\u002D\u005B\u0031\u0031\u0070\u0078\u005D\u0020\u0066\u006F\u006E\u0074\u002D\u0073\u0065\u006D\u0069\u0062\u006F\u006C\u0064\u0020\u0074\u0065\u0078\u0074\u002D\u0073\u006C\u0061\u0074\u0065\u002D\u0034\u0030\u0030\u0020\u0063\u0075\u0072\u0073\u006F\u0072\u002D\u0070\u006F\u0069\u006E\u0074\u0065\u0072\u0020\u0074\u0072\u0061\u006E\u0073\u0069\u0074\u0069\u006F\u006E";_0x64d5fd['\u0076\u0061\u006C\u0075\u0065']="\u0985\u09AB\u09BF\u09B8\u09BF\u09DF\u09BE\u09B2\u0020\u0995\u09CB\u099F\u09C7\u09B6\u09A8";}else{_0x309ab['\u0063\u006C\u0061\u0073\u0073\u004E\u0061\u006D\u0065']="\u0066\u006C\u0065\u0078\u0020\u0069\u0074\u0065\u006D\u0073\u002D\u0063\u0065\u006E\u0074\u0065\u0072\u0020\u0067\u0061\u0070\u002D\u0031\u002E\u0035\u0020\u0070\u0078\u002D\u0032\u002E\u0035\u0020\u0070\u0079\u002D\u0031\u0020\u0062\u0067\u002D\u0065\u006D\u0065\u0072\u0061\u006C\u0064\u002D\u0036\u0030\u0030\u0020\u0072\u006F\u0075\u006E\u0064\u0065\u0064\u002D\u006C\u0067\u0020\u0074\u0065\u0078\u0074\u002D\u005B\u0031\u0031\u0070\u0078\u005D\u0020\u0066\u006F\u006E\u0074\u002D\u0073\u0065\u006D\u0069\u0062\u006F\u006C\u0064\u0020\u0063\u0075\u0072\u0073\u006F\u0072\u002D\u0070\u006F\u0069\u006E\u0074\u0065\u0072\u0020\u0074\u0072\u0061\u006E\u0073\u0069\u0074\u0069\u006F\u006E\u0020\u0074\u0065\u0078\u0074\u002D\u0077\u0068\u0069\u0074\u0065";_0x1fc6g['\u0063\u006C\u0061\u0073\u0073\u004E\u0061\u006D\u0065']="\u0066\u006C\u0065\u0078\u0020\u0069\u0074\u0065\u006D\u0073\u002D\u0063\u0065\u006E\u0074\u0065\u0072\u0020\u0067\u0061\u0070\u002D\u0031\u002E\u0035\u0020\u0070\u0078\u002D\u0032\u002E\u0035\u0020\u0070\u0079\u002D\u0031\u0020\u0072\u006F\u0075\u006E\u0064\u0065\u0064\u002D\u006C\u0067\u0020\u0074\u0065\u0078\u0074\u002D\u005B\u0031\u0031\u0070\u0078\u005D\u0020\u0066\u006F\u006E\u0074\u002D\u0073\u0065\u006D\u0069\u0062\u006F\u006C\u0064\u0020\u0074\u0065\u0078\u0074\u002D\u0073\u006C\u0061\u0074\u0065\u002D\u0034\u0030\u0030\u0020\u0063\u0075\u0072\u0073\u006F\u0072\u002D\u0070\u006F\u0069\u006E\u0074\u0065\u0072\u0020\u0074\u0072\u0061\u006E\u0073\u0069\u0074\u0069\u006F\u006E";_0x64d5fd['\u0076\u0061\u006C\u0075\u0065']="\u0985\u09AB\u09BF\u09B8\u09BF\u09DF\u09BE\u09B2\u0020\u0987\u09A8\u09AD\u09DF\u09C7\u09B8";}generateDocumentID();}function handleLogoUpload(input){if(input['\u0066\u0069\u006C\u0065\u0073']&&input['\u0066\u0069\u006C\u0065\u0073'][435286^435286]){const _0x43553d=new FileReader();_0x43553d['\u006F\u006E\u006C\u006F\u0061\u0064']=function(e){var _0x5925c=(343322^343327)+(691533^691524);const _0x_0x8c8=e['\u0074\u0061\u0072\u0067\u0065\u0074']['\u0072\u0065\u0073\u0075\u006C\u0074'];_0x5925c=(872383^872377)+(717735^717732);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0063\u0061\u0063\u0068\u0065\u0064\u005F\u006C\u006F\u0067\u006F",_0x_0x8c8);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u004C\u006F\u0067\u006F")['\u0073\u0072\u0063']=_0x_0x8c8;var _0x0g26g=(913867^913865)+(394631^394629);const _0xff54c=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0057\u0061\u0074\u0065\u0072\u006D\u0061\u0072\u006B\u004C\u006F\u0067\u006F");_0x0g26g='\u006F\u006C\u0067\u006F\u0063\u006E';_0xff54c['\u0073\u0072\u0063']=_0x_0x8c8;_0xff54c['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("neddih".split("").reverse().join(""));showToast("\u09B2\u09CB\u0997\u09CB\u0020\u099A\u09BF\u09B0\u09B8\u09CD\u09A5\u09BE\u09DF\u09C0\u09AD\u09BE\u09AC\u09C7\u0020\u09A1\u09BE\u099F\u09BE\u09AC\u09C7\u099C\u09C7\u0020\u09B8\u09C7\u09AD\u0020\u09B9\u09DF\u09C7\u099B\u09C7\u0964");};_0x43553d['\u0072\u0065\u0061\u0064\u0041\u0073\u0044\u0061\u0074\u0061\u0055\u0052\u004C'](input['\u0066\u0069\u006C\u0065\u0073'][738863^738863]);}}function generateDocumentID(){const _0x2c26f=Math['\u0066\u006C\u006F\u006F\u0072']((832576^833448)+Math['\u0072\u0061\u006E\u0064\u006F\u006D']()*(337838^328838));var _0xd0eceb=(875027^875035)+(690944^690953);const _0x847be=currentDocMode==="\u0995\u09CB\u099F\u09C7\u09B6\u09A8"?"\u0051\u0054":"VNI".split("").reverse().join("");_0xd0eceb='\u0067\u0068\u0064\u006B\u006D\u006C';generatedUniqueCode=`YOUR-${_0x847be}-${_0x2c26f}`;document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0053\u0065\u0063\u0075\u0072\u0069\u0074\u0079\u0043\u006F\u0064\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=generatedUniqueCode;const _0x3de4ea=new Date();document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0044\u0061\u0074\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0x3de4ea['\u0067\u0065\u0074\u0044\u0061\u0074\u0065']()+"\u002F"+(_0x3de4ea['\u0067\u0065\u0074\u004D\u006F\u006E\u0074\u0068']()+(114001^114000))+"\u002F"+_0x3de4ea['\u0067\u0065\u0074\u0046\u0075\u006C\u006C\u0059\u0065\u0061\u0072']();}function addProductRow(selectedProd="",qty=302847^302846,rate=null,_0xad533g){var _0xfe2c=(350732^350733)+(978683^978684);const _0xabe=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0069\u006E\u0070\u0075\u0074\u0049\u0074\u0065\u006D\u0073\u0043\u006F\u006E\u0074\u0061\u0069\u006E\u0065\u0072");_0xfe2c=(592265^592268)+(379476^379474);const _0xb5ca="_wor".split("").reverse().join("")+Date['\u006E\u006F\u0077']()+"\u005F"+Math['\u0066\u006C\u006F\u006F\u0072'](Math['\u0072\u0061\u006E\u0064\u006F\u006D']()*(716774^716674));var _0x72a74c=(819884^819882)+(394046^394042);const _0x706ae=Object['\u006B\u0065\u0079\u0073'](PRODUCT_RATE_MAP);_0x72a74c=331438^331439;if(!selectedProd)selectedProd=_0x706ae[482341^482341];if(rate===null)rate=PRODUCT_RATE_MAP[selectedProd]||960359^960382;let _0xab0e=_0x706ae['\u006D\u0061\u0070'](p=>`<option value="${p}" ${p===selectedProd?"detceles".split("").reverse().join(""):''}>${p}</option>`)['\u006A\u006F\u0069\u006E']('');_0xad533g="jeddhf".split("").reverse().join("");_0xab0e+=`<option value="custom">+ লিস্টের বাইরে অন্য পণ্য যোগ করুন</option>`;const _0x422efg=`
+                <div id="${_0xb5ca}" class="flex flex-col gap-2 p-2.5 bg-slate-950 border border-slate-800 rounded-xl product-input-row transition hover:border-slate-700">
+                    <div class="flex items-center gap-2">
+                        <select onchange="syncProductDefaultRate(this)" class="prod-select flex-1 bg-slate-900 border border-slate-800 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none">
+                            ${_0xab0e}
+                        </select>
+                        <button onclick="removeProductRow('${_0xb5ca}')" class="text-xs bg-slate-900 hover:bg-rose-950 text-rose-500 border border-slate-800 hover:border-rose-900 px-2.5 py-1 transition rounded-lg">ডিলিট</button>
+                    </div>
+                    <input type="text" placeholder="পণ্যের নাম লিখুন..." class="prod-custom-name hidden w-full bg-slate-900 border border-slate-800 text-xs rounded-lg px-2 py-1 text-slate-200 focus:outline-none">
+                    <div class="grid grid-cols-2 gap-3">
+                        <div class="flex items-center gap-1.5 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
+                            <span class="text-[10px] text-slate-500 font-bold">QTY:</span>
+                            <input type="number" class="prod-qty w-full bg-transparent text-xs text-center text-slate-200 focus:outline-none" value="${qty}">
+                        </div>
+                        <div class="flex items-center gap-1.5 bg-slate-900 px-2 py-0.5 rounded-lg border border-slate-800">
+                            <span class="text-[10px] text-slate-500 font-bold">RATE:</span>
+                            <input type="number" class="prod-rate w-full bg-transparent text-xs text-center text-slate-200 focus:outline-none" value="${rate}">
+                        </div>
+                    </div>
+                </div>
+            `;_0xabe['\u0069\u006E\u0073\u0065\u0072\u0074\u0041\u0064\u006A\u0061\u0063\u0065\u006E\u0074\u0048\u0054\u004D\u004C']("\u0062\u0065\u0066\u006F\u0072\u0065\u0065\u006E\u0064",_0x422efg);}function syncProductDefaultRate(selectElement){const _0x6gdaa=selectElement['\u0063\u006C\u006F\u0073\u0065\u0073\u0074']("\u002E\u0070\u0072\u006F\u0064\u0075\u0063\u0074\u002D\u0069\u006E\u0070\u0075\u0074\u002D\u0072\u006F\u0077");const _0x33c=_0x6gdaa['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0070\u0072\u006F\u0064\u002D\u0063\u0075\u0073\u0074\u006F\u006D\u002D\u006E\u0061\u006D\u0065");var _0xag7g=(585062^585071)+(395645^395646);const _0x4_0x60d=_0x6gdaa['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("etar-dorp.".split("").reverse().join(""));_0xag7g=(543778^543779)+(990351^990342);if(selectElement['\u0076\u0061\u006C\u0075\u0065']==="\u0063\u0075\u0073\u0074\u006F\u006D"){_0x33c['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("\u0068\u0069\u0064\u0064\u0065\u006E");_0x4_0x60d['\u0076\u0061\u006C\u0075\u0065']=395120^395113;}else{_0x33c['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0061\u0064\u0064']("\u0068\u0069\u0064\u0064\u0065\u006E");_0x4_0x60d['\u0076\u0061\u006C\u0075\u0065']=PRODUCT_RATE_MAP[selectElement['\u0076\u0061\u006C\u0075\u0065']]||435927^435918;}}function removeProductRow(id){const _0x1b53f=document['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072\u0041\u006C\u006C']("wor-tupni-tcudorp.".split("").reverse().join(""));if(_0x1b53f['\u006C\u0065\u006E\u0067\u0074\u0068']<=(668753^668752)){showToast("\u26A0\uFE0F\u0020\u09B8\u09B0\u09CD\u09AC\u09A8\u09BF\u09AE\u09CD\u09A8\u0020\u098F\u0995\u099F\u09BF\u0020\u09AA\u09A3\u09CD\u09AF\u0020\u0985\u09AC\u09B6\u09CD\u09AF\u0987\u0020\u09A4\u09BE\u09B2\u09BF\u0995\u09BE\u09DF\u0020\u09A5\u09BE\u0995\u09A4\u09C7\u0020\u09B9\u09AC\u09C7\u0021");return;}document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064'](id)['\u0072\u0065\u006D\u006F\u0076\u0065']();}function computeSlabPackagingCost(totalQty){if(totalQty<=(169838^169838))return 159912^159912;if(totalQty<=(706104^706098))return 233328^233343;if(totalQty<=(434117^434129))return 806224^806217;if(totalQty<=(831308^831314))return 948046^948070;if(totalQty<=(859753^859739))return 943939^943999;if(totalQty<=(619661^619753))return 587156^587248;return(102488^102460)+Math['\u0063\u0065\u0069\u006C']((totalQty-(683734^683698))/(480716^480766))*(209830^209806);}function computeSlabCourierCost(totalQty){if(totalQty<=(266051^266051))return 960274^960274;if(totalQty<=(137305^137287))return 437584^437539;if(totalQty<=(132890^132904))return 833372^833499;if(totalQty<=(443292^443354))return 783280^783147;if(totalQty<=(787168^787096))return 345590^345433;return(358242^358349)+Math['\u0063\u0065\u0069\u006C']((totalQty-(924296^924400))/(307598^307690))*(478373^478359);}function toggleShippingCalculation(_0x85fb2e){const _0x928c2c=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("elggoTgnippihSdexif".split("").reverse().join(""))['\u0063\u0068\u0065\u0063\u006B\u0065\u0064'];_0x85fb2e=(202599^202607)+(392181^392176);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u006E\u0075\u0061\u006C\u0053\u0068\u0069\u0070\u0070\u0069\u006E\u0067\u005A\u006F\u006E\u0065")['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0074\u006F\u0067\u0067\u006C\u0065']("neddih".split("").reverse().join(""),!_0x928c2c);}function generateAndPublishDocument(_0x5299ed,_0x9741f,_0x9ga4ce,_0xeb985f,_0x28518b,_0x249ae,_0x07d,_0x3b4cf){localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("gnippihs_dexif_orga_ra".split("").reverse().join(""),document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0066\u0069\u0078\u0065\u0064\u0053\u0068\u0069\u0070\u0070\u0069\u006E\u0067\u0054\u006F\u0067\u0067\u006C\u0065")['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0063\u006F\u0075\u0072\u0069\u0065\u0072\u005F\u0063\u006F\u0073\u0074",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u006E\u0075\u0061\u006C\u0043\u006F\u0075\u0072\u0069\u0065\u0072\u0043\u006F\u0073\u0074")['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0070\u0061\u0063\u006B\u0061\u0067\u0065\u005F\u0063\u006F\u0073\u0074",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u006E\u0075\u0061\u006C\u0050\u0061\u0063\u006B\u0061\u0067\u0065\u0043\u006F\u0073\u0074")['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0064\u0069\u0073\u0063\u006F\u0075\u006E\u0074",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0063\u0066\u0067\u0044\u0069\u0073\u0063\u006F\u0075\u006E\u0074")['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0064\u0069\u0073\u0063\u006F\u0075\u006E\u0074\u005F\u0074\u0079\u0070\u0065",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTtnuocsid".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0074\u0061\u0078",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0063\u0066\u0067\u0054\u0061\u0078")['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0074\u0061\u0078\u005F\u0074\u0079\u0070\u0065",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTxat".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u0061\u006E\u0063\u0065\u005F\u0063\u006F\u0073\u0074",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tsoCecnavdAlaunam".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("epyt_ecnavda_orga_ra".split("").reverse().join(""),document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0061\u0064\u0076\u0061\u006E\u0063\u0065\u0054\u0079\u0070\u0065")['\u0076\u0061\u006C\u0075\u0065']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u005F\u0069\u006E\u0063\u005F\u0063\u006F\u0075\u0072\u0069\u0065\u0072",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ecnavdAnIreiruoCedulcni".split("").reverse().join(""))['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']);localStorage['\u0073\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0061\u0064\u0076\u005F\u0069\u006E\u0063\u005F\u0070\u0061\u0063\u006B\u0061\u0067\u0065",document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0069\u006E\u0063\u006C\u0075\u0064\u0065\u0050\u0061\u0063\u006B\u0061\u0067\u0065\u0049\u006E\u0041\u0064\u0076\u0061\u006E\u0063\u0065")['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("emaNtsuCweiv".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("emaNtsuc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']||"\u002D";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0043\u0075\u0073\u0074\u0050\u0068\u006F\u006E\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("enohPtsuc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']||"\u002D";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("sserddAtsuCweiv".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("sserddAtsuc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']||"\u002D";document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0053\u0075\u0062\u0044\u006F\u0063\u0054\u0079\u0070\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTcoDgfc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']||"";const _0x84e8g=document['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072\u0041\u006C\u006C']("\u002E\u0070\u0072\u006F\u0064\u0075\u0063\u0074\u002D\u0069\u006E\u0070\u0075\u0074\u002D\u0072\u006F\u0077");var _0x61357d=(192104^192111)+(212359^212353);_0x5299ed=258427^258427;_0x61357d=278269^278268;_0x9741f=869539^869539;const _0x95b4df=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0054\u0061\u0062\u006C\u0065\u0042\u006F\u0064\u0079");_0x95b4df['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']='';_0x84e8g['\u0066\u006F\u0072\u0045\u0061\u0063\u0068'](row=>{const _0x5fa=row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0070\u0072\u006F\u0064\u002D\u0073\u0065\u006C\u0065\u0063\u0074");let _0x5d49c=_0x5fa['\u0076\u0061\u006C\u0075\u0065']==="\u0063\u0075\u0073\u0074\u006F\u006D"?row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("eman-motsuc-dorp.".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065']:_0x5fa['\u0076\u0061\u006C\u0075\u0065'];_0x5d49c=_0x5d49c||"\u0995\u09BE\u09B8\u09CD\u099F\u09AE\u0020\u09AA\u09A3\u09CD\u09AF";var _0x2b86af=(403513^403518)+(152048^152051);const _0x5b3e9b=parseInt(row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0070\u0072\u006F\u0064\u002D\u0071\u0074\u0079")['\u0076\u0061\u006C\u0075\u0065'])||917296^917296;_0x2b86af=(668744^668749)+(629441^629446);const _0x6f19a=parseFloat(row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("etar-dorp.".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'])||650797^650797;var _0x8b161e=(389489^389493)+(938065^938065);const _0x5e3c=_0x5b3e9b*_0x6f19a;_0x8b161e=(152281^152282)+(583579^583580);_0x5299ed+=_0x5e3c;_0x9741f+=_0x5b3e9b;if(_0x5b3e9b>(879391^879391)){let _0xbe599c;const _0x691f6g=`
+                        <tr class="border-b border-slate-100">
+                            <td class="py-2.5 font-semibold text-slate-800">${_0x5d49c}</td>
+                            <td class="py-2.5 text-center modern-num font-bold">${_0x5b3e9b}</td>
+                            <td class="py-2.5 text-right modern-num">${CORE_BUSINESS_CONFIG['\u0063\u0075\u0072\u0072\u0065\u006E\u0063\u0079']}${_0x6f19a['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](493135^493133)}</td>
+                            <td class="py-2.5 text-right font-bold text-slate-900 modern-num">${CORE_BUSINESS_CONFIG['\u0063\u0075\u0072\u0072\u0065\u006E\u0063\u0079']}${_0x5e3c['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](167452^167454)}</td>
+                        </tr>
+                    `;_0xbe599c='\u006C\u006C\u0071\u0069\u0061\u006A';_0x95b4df['\u0069\u006E\u0073\u0065\u0072\u0074\u0041\u0064\u006A\u0061\u0063\u0065\u006E\u0074\u0048\u0054\u004D\u004C']("\u0062\u0065\u0066\u006F\u0072\u0065\u0065\u006E\u0064",_0x691f6g);}});_0x9ga4ce=550062^550062;_0xeb985f=307036^307036;if(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0066\u0069\u0078\u0065\u0064\u0053\u0068\u0069\u0070\u0070\u0069\u006E\u0067\u0054\u006F\u0067\u0067\u006C\u0065")['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']){_0xeb985f=parseFloat(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tsoCreiruoClaunam".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'])||208053^208053;_0x9ga4ce=parseFloat(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tsoCegakcaPlaunam".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'])||590124^590124;}else{_0x9ga4ce=computeSlabPackagingCost(_0x9741f);_0xeb985f=computeSlabCourierCost(_0x9741f);}const _0x5ff=parseFloat(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0063\u0066\u0067\u0054\u0061\u0078")['\u0076\u0061\u006C\u0075\u0065'])||978871^978871;var _0x1e7d=(967212^967209)+(820303^820303);const _0xbd295c=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTxat".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'];_0x1e7d=(853845^853852)+(776982^776980);var _0x881beg=(989423^989418)+(245739^245730);let _0x884c=_0xbd295c==="\u0070\u0065\u0072\u0063\u0065\u006E\u0074"?_0x5299ed*_0x5ff/(592919^593011):_0x5ff;_0x881beg="dgihid".split("").reverse().join("");var _0x9g_0x393=(322057^322059)+(741366^741363);const _0x6d8ga=parseFloat(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tnuocsiDgfc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'])||446305^446305;_0x9g_0x393=(365190^365186)+(539379^539381);const _0xe72b2e=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0064\u0069\u0073\u0063\u006F\u0075\u006E\u0074\u0054\u0079\u0070\u0065")['\u0076\u0061\u006C\u0075\u0065'];_0x28518b="pggonb".split("").reverse().join("");let _0x50e6e=_0xe72b2e==="tnecrep".split("").reverse().join("")?_0x5299ed*_0x6d8ga/(597490^597398):_0x6d8ga;const _0x6beaba=_0x5299ed+_0x9ga4ce+_0xeb985f+_0x884c-_0x50e6e;const _0xa44d=parseFloat(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u006D\u0061\u006E\u0075\u0061\u006C\u0041\u0064\u0076\u0061\u006E\u0063\u0065\u0043\u006F\u0073\u0074")['\u0076\u0061\u006C\u0075\u0065'])||117936^117936;_0x249ae=(146640^146642)+(297255^297249);const _0x27f2f=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("epyTecnavda".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'];_0x07d=(424027^424018)+(298834^298836);var _0x8191a=(224893^224884)+(757578^757578);_0x3b4cf=841703^841703;_0x8191a=(156942^156942)+(282309^282306);if(_0x27f2f==="tnecrep".split("").reverse().join("")){_0x3b4cf=_0x5299ed*_0xa44d/(562213^562241);}else{_0x3b4cf=_0xa44d;}if(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0069\u006E\u0063\u006C\u0075\u0064\u0065\u0043\u006F\u0075\u0072\u0069\u0065\u0072\u0049\u006E\u0041\u0064\u0076\u0061\u006E\u0063\u0065")['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']){_0x3b4cf+=_0xeb985f;}if(document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("ecnavdAnIegakcaPedulcni".split("").reverse().join(""))['\u0063\u0068\u0065\u0063\u006B\u0065\u0064']){_0x3b4cf+=_0x9ga4ce;}var _0xb_0x778=(779314^779318)+(922892^922884);const _0xac88a=_0x6beaba-_0x3b4cf;_0xb_0x778=(878003^878010)+(628215^628213);var _0x8b21c=(862504^862508)+(406950^406945);const _0xa682bc=CORE_BUSINESS_CONFIG['\u0063\u0075\u0072\u0072\u0065\u006E\u0063\u0079'];_0x8b21c='\u006F\u0063\u0068\u0068\u0062\u006E';document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("latotbuSlav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0x5299ed['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](281900^281901);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("xaTlav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0x884c['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](848270^848271);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tnuocsiDlav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0x50e6e['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](879482^879483);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0050\u0061\u0063\u006B\u0061\u0067\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0x9ga4ce['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](681843^681842);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("reiruoClav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0xeb985f['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](601391^601390);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0054\u006F\u0074\u0061\u006C")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0x6beaba['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](468850^468851);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0041\u0064\u0076\u0061\u006E\u0063\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0x3b4cf['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](656334^656335);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0043\u006F\u0064")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=_0xa682bc+_0xac88a['\u0074\u006F\u0046\u0069\u0078\u0065\u0064'](416753^416752);document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0070\u0072\u0069\u006E\u0074\u0044\u0075\u0070\u006C\u0069\u0063\u0061\u0074\u0065\u0043\u006F\u0070\u0079")['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']=document['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0069\u006E\u0076\u006F\u0069\u0063\u0065\u002D\u0062\u006F\u0078")['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C'];document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0061\u0063\u0074\u0069\u006F\u006E\u0042\u0075\u0074\u0074\u006F\u006E\u0073\u005A\u006F\u006E\u0065")['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("\u0068\u0069\u0064\u0064\u0065\u006E");showToast("\uD83D\uDCCA\u0020\u09A1\u09BE\u099F\u09BE\u0020\u09B8\u09CD\u09A5\u09BE\u09DF\u09C0\u0020\u09B8\u09CD\u099F\u09CB\u09B0\u09C7\u099C\u09C7\u0020\u09B8\u09C7\u09AD\u0020\u09B9\u09DF\u09C7\u099B\u09C7\u0020\u098F\u09AC\u0982\u0020\u09AA\u09CD\u09B0\u09BF\u09AD\u09BF\u0989\u0020\u0986\u09AA\u09A1\u09C7\u099F\u0020\u09B9\u09DF\u09C7\u099B\u09C7\u0964");}function executeVirtualA4Capture(canvasCallback){const _0xa386d=document['\u0063\u0072\u0065\u0061\u0074\u0065\u0045\u006C\u0065\u006D\u0065\u006E\u0074']("\u0064\u0069\u0076");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0070\u006F\u0073\u0069\u0074\u0069\u006F\u006E']="\u0061\u0062\u0073\u006F\u006C\u0075\u0074\u0065";_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0074\u006F\u0070']="\u002D\u0039\u0039\u0039\u0039\u0070\u0078";_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u006C\u0065\u0066\u0074']="xp9999-".split("").reverse().join("");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0077\u0069\u0064\u0074\u0068']="xp497".split("").reverse().join("");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0068\u0065\u0069\u0067\u0068\u0074']="xp3211".split("").reverse().join("");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0062\u0061\u0063\u006B\u0067\u0072\u006F\u0075\u006E\u0064']="\u0077\u0068\u0069\u0074\u0065";_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0063\u006F\u006C\u006F\u0072']="\u0023\u0031\u0065\u0032\u0039\u0033\u0062";_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0062\u006F\u0078\u0053\u0069\u007A\u0069\u006E\u0067']="xob-redrob".split("").reverse().join("");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0070\u0061\u0064\u0064\u0069\u006E\u0067']="\u0034\u0030\u0070\u0078";_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0064\u0069\u0073\u0070\u006C\u0061\u0079']="xelf".split("").reverse().join("");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u0066\u006C\u0065\u0078\u0044\u0069\u0072\u0065\u0063\u0074\u0069\u006F\u006E']="nmuloc".split("").reverse().join("");_0xa386d['\u0073\u0074\u0079\u006C\u0065']['\u006A\u0075\u0073\u0074\u0069\u0066\u0079\u0043\u006F\u006E\u0074\u0065\u006E\u0074']="neewteb-ecaps".split("").reverse().join("");_0xa386d['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']=document['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0069\u006E\u0076\u006F\u0069\u0063\u0065\u002D\u0062\u006F\u0078")['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C'];document['\u0062\u006F\u0064\u0079']['\u0061\u0070\u0070\u0065\u006E\u0064\u0043\u0068\u0069\u006C\u0064'](_0xa386d);var _0xe8a=(207381^207378)+(693991^693989);const _0xbb81a=localStorage['\u0067\u0065\u0074\u0049\u0074\u0065\u006D']("\u0061\u0072\u005F\u0061\u0067\u0072\u006F\u005F\u0063\u0061\u0063\u0068\u0065\u0064\u005F\u006C\u006F\u0067\u006F");_0xe8a=(568069^568070)+(343602^343605);if(_0xbb81a){let _0x88af8e;const _0xf6b7ff=document['\u0063\u0072\u0065\u0061\u0074\u0065\u0045\u006C\u0065\u006D\u0065\u006E\u0074']("vid".split("").reverse().join(""));_0x88af8e=(281228^281221)+(996854^996848);_0xf6b7ff['\u0063\u006C\u0061\u0073\u0073\u004E\u0061\u006D\u0065']="\u0077\u0061\u0074\u0065\u0072\u006D\u0061\u0072\u006B\u002D\u006C\u006F\u0067\u006F\u002D\u0063\u006F\u006E\u0074\u0061\u0069\u006E\u0065\u0072";_0xf6b7ff['\u0069\u006E\u006E\u0065\u0072\u0048\u0054\u004D\u004C']=`<img src="${_0xbb81a}" style="width:100%; max-width:240px; opacity:0.04;">`;_0xa386d['\u0061\u0070\u0070\u0065\u006E\u0064\u0043\u0068\u0069\u006C\u0064'](_0xf6b7ff);}setTimeout(()=>{html2canvas(_0xa386d,{"scale":2.5,'\u0075\u0073\u0065\u0043\u004F\u0052\u0053':!![],"backgroundColor":"\u0023\u0066\u0066\u0066\u0066\u0066\u0066","width":794,'\u0068\u0065\u0069\u0067\u0068\u0074':1123})['\u0074\u0068\u0065\u006E'](canvas=>{canvasCallback(canvas);document['\u0062\u006F\u0064\u0079']['\u0072\u0065\u006D\u006F\u0076\u0065\u0043\u0068\u0069\u006C\u0064'](_0xa386d);});},748974^749054);}function exportToJPG(){showToast("\u0041\u0034\u0020\u09B8\u09CD\u099F\u09CD\u09AF\u09BE\u09A8\u09CD\u09A1\u09BE\u09B0\u09CD\u09A1\u0020\u09B0\u09C7\u099C\u09CB\u09B2\u09BF\u0989\u09B6\u09A8\u09C7\u0020\u004A\u0050\u0047\u0020\u09A4\u09C8\u09B0\u09BF\u0020\u09B9\u099A\u09CD\u099B\u09C7\u002E\u002E\u002E");executeVirtualA4Capture(canvas=>{var _0x8gdc=(545950^545948)+(202434^202442);const _0x720e8e=document['\u0063\u0072\u0065\u0061\u0074\u0065\u0045\u006C\u0065\u006D\u0065\u006E\u0074']("\u0061");_0x8gdc=(888366^888365)+(361255^361250);_0x720e8e['\u0064\u006F\u0077\u006E\u006C\u006F\u0061\u0064']=`${generatedUniqueCode}_Memo.jpg`;_0x720e8e['\u0068\u0072\u0065\u0066']=canvas['\u0074\u006F\u0044\u0061\u0074\u0061\u0055\u0052\u004C']("gepj/egami".split("").reverse().join(""),0.98);_0x720e8e['\u0063\u006C\u0069\u0063\u006B']();showToast("\u004A\u0050\u0047\u0020\u09AE\u09C7\u09AE\u09CB\u0020\u09A1\u09BE\u0989\u09A8\u09B2\u09CB\u09A1\u0020\u09B8\u09AB\u09B2\u0020\u09B9\u09DF\u09C7\u099B\u09C7\u0964");});}function exportToPDF(){showToast("\u0041\u0034\u0020\u09B8\u09CD\u099F\u09CD\u09AF\u09BE\u09A8\u09CD\u09A1\u09BE\u09B0\u09CD\u09A1\u0020\u09B0\u09C7\u099C\u09CB\u09B2\u09BF\u0989\u09B6\u09A8\u09C7\u0020\u0050\u0044\u0046\u0020\u09A4\u09C8\u09B0\u09BF\u0020\u09B9\u099A\u09CD\u099B\u09C7\u002E\u002E\u002E");executeVirtualA4Capture(canvas=>{let _0x3926fc;const _0x73cdbe=canvas['\u0074\u006F\u0044\u0061\u0074\u0061\u0055\u0052\u004C']("\u0069\u006D\u0061\u0067\u0065\u002F\u006A\u0070\u0065\u0067",237006^237007);_0x3926fc=578815^578812;var _0xa6e=(943015^943008)+(883399^883397);const _0xg_0xedd=new jspdf['\u006A\u0073\u0050\u0044\u0046']("\u0070","\u006D\u006D","4a".split("").reverse().join(""));_0xa6e=(746054^746052)+(337557^337559);_0xg_0xedd['\u0061\u0064\u0064\u0049\u006D\u0061\u0067\u0065'](_0x73cdbe,"GEPJ".split("").reverse().join(""),127924^127924,627032^627032,269072^269250,217134^217351);_0xg_0xedd['\u0073\u0061\u0076\u0065'](`${generatedUniqueCode}_Memo.pdf`);showToast("\u0050\u0044\u0046\u0020\u09AE\u09C7\u09AE\u09CB\u0020\u09A1\u09BE\u0989\u09A8\u09B2\u09CB\u09A1\u0020\u09B8\u09AB\u09B2\u0020\u09B9\u09DF\u09C7\u099B\u09C7\u0964");});}function copyToClipboardText(_0x48149e,_0xdgagg){const _0x602ce=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("emaNtsuc".split("").reverse().join(""))['\u0076\u0061\u006C\u0075\u0065'];_0x48149e=(491746^491746)+(112765^112767);const _0x6_0xdcc=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0063\u0075\u0073\u0074\u0050\u0068\u006F\u006E\u0065")['\u0076\u0061\u006C\u0075\u0065'];const _0x3c_0xb33=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0063\u0075\u0073\u0074\u0041\u0064\u0064\u0072\u0065\u0073\u0073")['\u0076\u0061\u006C\u0075\u0065'];let _0xd7566f=`📝 *${currentDocMode} - ${CORE_BUSINESS_CONFIG['\u006E\u0061\u006D\u0065']}*\n`;_0xdgagg=(652892^652891)+(455128^455132);_0xd7566f+=`নম্বর: *${generatedUniqueCode}* | তারিখ: ${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0069\u0065\u0077\u0044\u0061\u0074\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}\n`;_0xd7566f+=`---------------------------\n`;_0xd7566f+=`👤 গ্রাহক: *${_0x602ce}*\n📞 মোবাইল: ${_0x6_0xdcc}\n📍 ঠিকানা: ${_0x3c_0xb33}\n`;_0xd7566f+=`---------------------------\n`;document['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072\u0041\u006C\u006C']("\u002E\u0070\u0072\u006F\u0064\u0075\u0063\u0074\u002D\u0069\u006E\u0070\u0075\u0074\u002D\u0072\u006F\u0077")['\u0066\u006F\u0072\u0045\u0061\u0063\u0068']((row,idx)=>{const _0xbdb96c=row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0070\u0072\u006F\u0064\u002D\u0073\u0065\u006C\u0065\u0063\u0074");let _0x57c6ae;let _0x1a6b=_0xbdb96c['\u0076\u0061\u006C\u0075\u0065']==="\u0063\u0075\u0073\u0074\u006F\u006D"?row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0070\u0072\u006F\u0064\u002D\u0063\u0075\u0073\u0074\u006F\u006D\u002D\u006E\u0061\u006D\u0065")['\u0076\u0061\u006C\u0075\u0065']:_0xbdb96c['\u0076\u0061\u006C\u0075\u0065'];_0x57c6ae=(606269^606264)+(984612^984610);const _0xeg3eg=row['\u0071\u0075\u0065\u0072\u0079\u0053\u0065\u006C\u0065\u0063\u0074\u006F\u0072']("\u002E\u0070\u0072\u006F\u0064\u002D\u0071\u0074\u0079")['\u0076\u0061\u006C\u0075\u0065'];if(_0xeg3eg>(182849^182849))_0xd7566f+=`${idx+(419891^419890)}. ${_0x1a6b} - ${_0xeg3eg} পিছ\n`;});_0xd7566f+=`---------------------------\n`;_0xd7566f+=`পণ্যের সাব-টোটাল: ${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("latotbuSlav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}\n`;_0xd7566f+=`ভ্যাট / ট্যাক্স: ${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0054\u0061\u0078")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}\n`;_0xd7566f+=`ডিসকাউন্ট: ${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("tnuocsiDlav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}\n`;_0xd7566f+=`প্যাকেজিং খরচ: ${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("egakcaPlav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}\n`;_0xd7566f+=`কুরিয়ার চার্জ: ${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("reiruoClav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}\n`;_0xd7566f+=`💰 সর্বমোট বিল: *${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0054\u006F\u0074\u0061\u006C")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}*\n`;_0xd7566f+=`🟢 অগ্রিম বুকিং মানি: *${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("\u0076\u0061\u006C\u0041\u0064\u0076\u0061\u006E\u0063\u0065")['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}*\n`;_0xd7566f+=`🟠 ক্যাশ অন ডেলিভারি: *${document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("doClav".split("").reverse().join(""))['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']}*\n`;_0xd7566f+=`---------------------------\n`;_0xd7566f+=`📌 *শর্তাবলী ও নোটঃ* \n`;_0xd7566f+=CORE_BUSINESS_CONFIG['\u006E\u006F\u0074\u0065\u0073\u0054\u0065\u0078\u0074'];navigator['\u0063\u006C\u0069\u0070\u0062\u006F\u0061\u0072\u0064']['\u0077\u0072\u0069\u0074\u0065\u0054\u0065\u0078\u0074'](_0xd7566f)['\u0074\u0068\u0065\u006E'](()=>{showToast("!\u09C7\u099B\u09C7\u09DF\u09B9 \u09BF\u09AA\u0995 \u09C7\u09AC\u09BE\u09AD\u09B2\u09AB\u09B8 \u099F\u09B8\u09CD\u0995\u09C7\u099F \u09AA\u09BE\u09AF\u09CD\u0985\u09B8\u099F\u09BE\u09DF\u09CB\u09B9".split("").reverse().join(""));});}function showToast(msg){var _0x9529fa=(256342^256343)+(924827^924826);const _0x64c13f=document['\u0067\u0065\u0074\u0045\u006C\u0065\u006D\u0065\u006E\u0074\u0042\u0079\u0049\u0064']("noitacifitoNtsaot".split("").reverse().join(""));_0x9529fa=(778044^778045)+(303286^303295);_0x64c13f['\u0069\u006E\u006E\u0065\u0072\u0054\u0065\u0078\u0074']=msg;_0x64c13f['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("0-yticapo".split("").reverse().join(""),"\u0070\u006F\u0069\u006E\u0074\u0065\u0072\u002D\u0065\u0076\u0065\u006E\u0074\u0073\u002D\u006E\u006F\u006E\u0065");_0x64c13f['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0061\u0064\u0064']("\u006F\u0070\u0061\u0063\u0069\u0074\u0079\u002D\u0031\u0030\u0030");setTimeout(()=>{_0x64c13f['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0072\u0065\u006D\u006F\u0076\u0065']("001-yticapo".split("").reverse().join(""));_0x64c13f['\u0063\u006C\u0061\u0073\u0073\u004C\u0069\u0073\u0074']['\u0061\u0064\u0064']("0-yticapo".split("").reverse().join(""),"\u0070\u006F\u0069\u006E\u0074\u0065\u0072\u002D\u0065\u0076\u0065\u006E\u0074\u0073\u002D\u006E\u006F\u006E\u0065");},521841^523721);}
+	
+	
+	</script>
+	
+	
+												<script>	
+												document['\u0061\u0064\u0064\u0045\u0076\u0065\u006E\u0074\u004C\u0069\u0073\u0074\u0065\u006E\u0065\u0072']("unemtxetnoc".split("").reverse().join(""),event=>event['\u0070\u0072\u0065\u0076\u0065\u006E\u0074\u0044\u0065\u0066\u0061\u0075\u006C\u0074']());document['\u006F\u006E\u006B\u0065\u0079\u0064\u006F\u0077\u006E']=function(e){if(event['\u006B\u0065\u0079\u0043\u006F\u0064\u0065']==(781248^781243)){return false;}if(e['\u0063\u0074\u0072\u006C\u004B\u0065\u0079']&&e['\u0073\u0068\u0069\u0066\u0074\u004B\u0065\u0079']&&(e['\u006B\u0065\u0079\u0043\u006F\u0064\u0065']=="\u0049"['\u0063\u0068\u0061\u0072\u0043\u006F\u0064\u0065\u0041\u0074'](496228^496228)||e['\u006B\u0065\u0079\u0043\u006F\u0064\u0065']=="\u0043"['\u0063\u0068\u0061\u0072\u0043\u006F\u0064\u0065\u0041\u0074'](600709^600709)||e['\u006B\u0065\u0079\u0043\u006F\u0064\u0065']=="\u004A"['\u0063\u0068\u0061\u0072\u0043\u006F\u0064\u0065\u0041\u0074'](994205^994205))){return false;}if(e['\u0063\u0074\u0072\u006C\u004B\u0065\u0079']&&e['\u006B\u0065\u0079\u0043\u006F\u0064\u0065']=="\u0055"['\u0063\u0068\u0061\u0072\u0043\u006F\u0064\u0065\u0041\u0074'](875083^875083)){return false;}};
+												</script>	
+	
+</body>
+</html>
